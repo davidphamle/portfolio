@@ -141,24 +141,18 @@
 
   .hero-foot {
     position: relative; z-index: 3;
-    display: grid; grid-template-columns: minmax(0, 520px) auto; justify-content: space-between;
-    align-items: end; gap: 28px;
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 24px 40px;
   }
-  .intro { font-size: clamp(17px, 1.5vw, 20px); color: var(--bone); max-width: 52ch; }
-  .intro a { text-decoration-color: var(--glow); text-underline-offset: 4px; text-decoration-thickness: 2px; }
-  .now { text-align: right; font-size: 15px; color: var(--ash); }
-  .now strong { display: block; color: var(--bone); font-weight: 600; font-size: 17px; }
-  .now .pulse {
-    display: inline-block; width: 9px; height: 9px; border-radius: 50%;
-    background: var(--glow); margin-right: 8px; vertical-align: middle;
-    box-shadow: 0 0 0 0 rgba(77,155,255,.6); animation: pulse 2.2s 2;
-  }
-  @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(77,155,255,0); } 100% { box-shadow: 0 0 0 0 rgba(77,155,255,0); } }
+  .intro { font-size: clamp(19px, 1.8vw, 24px); color: var(--bone); max-width: 40ch; line-height: 1.35; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  a.pill { text-decoration: none; min-height: 36px; }
+  a.pill:hover { background: rgba(140,192,255,.22); }
+  .hero-links { display: flex; flex-wrap: wrap; gap: 10px; }
 
   /* ---------- section heads ---------- */
   section { position: relative; }
   .head {
-    padding: clamp(90px, 12vw, 160px) var(--gutter) clamp(28px, 4vw, 48px);
+    padding: clamp(80px, 9vw, 120px) var(--gutter) clamp(24px, 3vw, 40px);
     display: flex; align-items: end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
   }
   .head h2 {
@@ -167,7 +161,7 @@
     overflow: hidden;
   }
   .head h2 span { display: inline-block; }
-  .head p { color: var(--ash); max-width: 38ch; font-size: 17px; }
+  .head .chips { margin: 0; }
 
   /* ---------- case studies ---------- */
   .cases { overflow: hidden; }
@@ -177,6 +171,7 @@
     overflow-x: auto; overscroll-behavior-x: contain;
     scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter);
     scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    align-items: flex-start; /* opening one card's details doesn't stretch the others */
     perspective: 1200px;
   }
   .track::-webkit-scrollbar { display: none; }
@@ -201,15 +196,14 @@
   .car-rail { flex: 1; height: 4px; background: var(--line); position: relative; max-width: 420px; }
   .car-thumb { position: absolute; inset: 0 auto 0 0; background: var(--glow); width: 25%; }
   .car-count { font-size: 15px; color: var(--ash); font-variant-numeric: tabular-nums; min-width: 4ch; }
-  .car-hint { font-size: 15px; color: var(--ash); margin-left: auto; }
   .case {
     position: relative;
-    flex: 0 0 min(78vw, 760px); min-height: 500px;
+    flex: 0 0 min(78vw, 640px); min-height: 0;
     scroll-snap-align: start;
     background: var(--panel);
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 56px), calc(100% - 56px) 100%, 0 100%);
     padding: clamp(24px, 3vw, 44px);
-    display: grid; grid-template-rows: auto 1fr auto; gap: 28px;
+    display: grid; gap: 24px;
     transform-style: preserve-3d; will-change: transform;
   }
   .case::before {
@@ -249,16 +243,35 @@
   }
   .case h3 {
     font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(54px, 7vw, 112px); line-height: 0.85; color: var(--bone);
+    font-size: clamp(40px, 4.4vw, 64px); line-height: 0.9; color: var(--bone);
   }
   .case h3 small {
     display: block; font-family: var(--body); text-transform: none; font-weight: 600;
-    font-size: 17px; color: var(--blue-text); margin-top: 14px; letter-spacing: 0;
+    font-size: 16px; color: var(--ash); margin-top: 10px; letter-spacing: 0;
   }
-  .case dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-  .case dt { font-weight: 600; font-size: 15px; color: var(--ash); margin-bottom: 6px; }
-  .case dd { font-size: 16px; line-height: 1.5; color: var(--bone); }
-  .todo { color: var(--blue-text) !important; }
+  .result { display: grid; gap: 14px; }
+  .result .num {
+    font-family: var(--display); font-weight: 900; line-height: .85; letter-spacing: -0.01em;
+    font-size: clamp(76px, 9vw, 132px); color: var(--blue-text); padding-bottom: .06em;
+  }
+  .result .cap { font-size: 18px; color: var(--bone); max-width: 32ch; line-height: 1.4; }
+  .case details { border-top: 1px solid var(--line); }
+  .case summary {
+    list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px;
+    min-height: 48px; font-weight: 600; font-size: 16px; color: var(--bone);
+  }
+  .case summary::-webkit-details-marker { display: none; }
+  .case summary::before {
+    content: ""; width: 9px; height: 9px; border-right: 2px solid var(--blue-text); border-bottom: 2px solid var(--blue-text);
+    transform: rotate(-45deg); transition: transform .2s;
+  }
+  .case details[open] summary::before { transform: rotate(45deg); }
+  .case summary:hover { color: var(--blue-text); }
+  .case details p { color: var(--ash); font-size: 16px; line-height: 1.55; padding-bottom: 8px; max-width: 52ch; }
+  .tag {
+    display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px;
+    border: 1px solid #5c5c58; color: var(--ash); font-size: 14px; font-weight: 600; white-space: nowrap;
+  }
 
   /* ---------- experience ---------- */
   .exp { list-style: none; border-top: 1px solid var(--line); margin: 0 var(--gutter); }
@@ -279,6 +292,9 @@
   .exp .role { font-family: var(--display); font-weight: 700; text-transform: uppercase; font-size: clamp(24px, 2.4vw, 34px); line-height: 1; }
   .exp .muted { color: var(--ash); font-size: 15px; transition: color .3s; }
   .exp .where { text-align: right; }
+  .exp a:hover .tag, .exp a:focus-visible .tag { color: var(--on-fill); border-color: rgba(255,255,255,.8); }
+  .edu-line { margin: 24px var(--gutter) 0; color: var(--ash); font-size: 16px; }
+  .edu-line strong { color: var(--bone); font-weight: 600; }
 
   /* ---------- stack ---------- */
   .stack { overflow: hidden; padding-bottom: 20px; }
@@ -290,14 +306,6 @@
   .lane span { padding: 0 .1em; }
   .lane .hollow { color: transparent; -webkit-text-stroke: 2px var(--ash); }
   .lane .lit { color: var(--blue-text); }
-
-  /* ---------- education ---------- */
-  .edu { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(16px, 2vw, 28px); padding: 0 var(--gutter); }
-  .edu article { border-top: 6px solid var(--bone); padding-top: 20px; }
-  .edu article:first-child { border-color: var(--glow); }
-  .edu h3 { font-family: var(--display); font-weight: 900; text-transform: uppercase; font-size: clamp(34px, 4vw, 60px); line-height: .9; margin-bottom: 12px; }
-  .edu p { color: var(--ash); font-size: 16px; }
-  .edu .btn { margin-top: 18px; }
 
   /* ---------- contact ---------- */
   .contact {
@@ -327,24 +335,18 @@
   /* ---------- responsive ---------- */
   @media (max-width: 480px) {
     .nav ul li.hide-sm { display: none; }
-    .car-hint { display: none; }
     .cta .btn { width: 100%; min-height: 56px; font-size: 18px; }
-    .edu .btn { width: 100%; }
+    .hero-links .btn { flex: 1 1 auto; }
   }
   @media (max-width: 860px) {
-    .hero-foot { grid-template-columns: 1fr; }
-    .now { text-align: left; }
     .case { flex-basis: 86vw; min-height: 0; }
-    .case dl { grid-template-columns: 1fr; gap: 16px; }
     .exp a, .exp .row { grid-template-columns: 1fr; gap: 4px; padding: 18px 4px; }
     .exp .where { text-align: left; }
-    .edu { grid-template-columns: 1fr; gap: 36px; }
     .name { font-size: min(23vw, 26svh); }
     .name .row:nth-child(2) { padding-left: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .now .pulse { animation: none; }
-    .exp a::after, .btn, .case::after { transition: none; }
+    .exp a::after, .btn, .case::after, .case summary::before { transition: none; }
     .progress { display: none; }
   }
 </style>
@@ -386,8 +388,15 @@
     </div>
 
     <div class="hero-foot">
-      <p class="intro">I'm a data product manager in Adelaide. I work across product design and data analytics, using AI to move faster. I hold a <a href="https://www.myequals.net/sharelink/00f89721-33fd-4a1c-ae31-827eb1f09156/54f239ec-53e0-4277-9441-44743fbc162e" target="_blank" rel="noopener">Master of Computer Science<span class="sr-only"> (opens in a new tab)</span></a> from the University of Adelaide.</p>
-      <p class="now"><span class="pulse" aria-hidden="true"></span>Currently<strong>Product Manager at Amplify-now</strong></p>
+      <div>
+        <p class="intro">Data product manager in Adelaide, currently at Amplify-now.</p>
+        <div class="chips"><a class="pill" href="https://www.myequals.net/sharelink/00f89721-33fd-4a1c-ae31-827eb1f09156/54f239ec-53e0-4277-9441-44743fbc162e" target="_blank" rel="noopener">Master of Computer Science, University of Adelaide<span class="sr-only"> (opens in a new tab)</span></a></div>
+      </div>
+      <div class="hero-links">
+        <a class="btn sm" href="mailto:davidphamle@gmail.com">Email</a>
+        <a class="btn sm outline" href="https://www.linkedin.com/in/davidphamle/" target="_blank" rel="noopener">LinkedIn<span class="sr-only"> (opens in a new tab)</span></a>
+        <a class="btn sm outline" href="https://drive.google.com/file/d/1v0ZzTSa_YepAs6BYjoaAf6q4SUH710pT/view?usp=download" target="_blank" rel="noopener">CV<span class="sr-only"> (opens in a new tab)</span></a>
+      </div>
     </div>
   </header>
 
@@ -395,44 +404,30 @@
   <section id="work" class="cases" aria-labelledby="work-h">
     <div class="head">
       <h2 id="work-h"><span>Selected work</span></h2>
-      <p>A few roles, told as the problem, what I did, and what changed.</p>
     </div>
     <div class="track" id="case-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Case studies, scroll sideways">
       <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/amplify-now.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">AN</span></span><span class="pill">SPM SaaS</span><span class="when">Now</span></div>
-        <h3>Amplify-now<small>Product Manager, Adelaide</small></h3>
-        <dl>
-          <div><dt>Problem</dt><dd class="todo">Add the problem you were brought in to solve.</dd></div>
-          <div><dt>What I did</dt><dd class="todo">Add the 1–2 moves you made.</dd></div>
-          <div><dt>Outcome</dt><dd class="todo">Add a measurable result.</dd></div>
-        </dl>
-      </article>
-      <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo wide" aria-hidden="true"><img src="logos/viva-energy.svg" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">VE</span></span><span class="pill">Fuel &amp; convenience</span><span class="when">From Jan 2025</span></div>
-        <h3>Viva Energy Retail<small>App Product Manager, Adelaide</small></h3>
-        <dl>
-          <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
-          <div><dt>What I did</dt><dd class="todo">Add what you did.</dd></div>
-          <div><dt>Outcome</dt><dd class="todo">Add the result.</dd></div>
-        </dl>
-      </article>
-      <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/kovena.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">K</span></span><span class="pill">Fintech</span><span class="when">Nov 2022 – Jun 2023</span></div>
-        <h3>Kovena<small>Product Manager, Melbourne</small></h3>
-        <dl>
-          <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
-          <div><dt>What I did</dt><dd class="todo">Add what you did.</dd></div>
-          <div><dt>Outcome</dt><dd class="todo">Add the result.</dd></div>
-        </dl>
+        <div class="case-top"><span class="logo wide" aria-hidden="true"><img src="logos/viva-energy.svg" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">VE</span></span><span class="pill">Fuel &amp; convenience</span><span class="when">Jan 2025 – Aug 2026</span></div>
+        <h3>Viva Energy Retail<small>App Product Manager, OTR app</small></h3>
+        <div class="result"><span class="num">1,000+</span><span class="cap">fuel transactions a day on the new SPS App I helped launch.</span></div>
+        <details><summary>How</summary><p>Owned strategy, data and delivery for the OTR app across fuel, carwash and pre-order. Key role in the back-end rebuild, the Flybuys in-app integration (close to a million in app sales) and unattended fuel purchasing. Built Power BI DAX measures and Snowflake SQL for customer segmentation.</p></details>
       </article>
       <article class="case" aria-roledescription="slide">
         <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/kienguru.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">KG</span></span><span class="pill">Edtech</span><span class="when">Apr 2019 – Sep 2021</span></div>
-        <h3>KienGuru<small>Product Lead, Ho Chi Minh City</small></h3>
-        <dl>
-          <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
-          <div><dt>What I did</dt><dd class="todo">Add what you did.</dd></div>
-          <div><dt>Outcome</dt><dd class="todo">Add the result.</dd></div>
-        </dl>
+        <h3>KienGuru<small>Product Lead</small></h3>
+        <div class="result"><span class="num">1M</span><span class="cap">downloads and 800,000 sign-ups for a Ruangguru-backed learning app.</span></div>
+        <details><summary>How</summary><p>Directed product strategy for the Vietnamese arm of Ruangguru (US$830M valuation), and ran regular user research and testing to align UX, CX and release priorities with tech leadership.</p></details>
+      </article>
+      <article class="case" aria-roledescription="slide">
+        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/kovena.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">K</span></span><span class="pill">Fintech</span><span class="tag">Contract</span><span class="when">Dec 2022 – Feb 2023</span></div>
+        <h3>Kovena<small>Product Manager</small></h3>
+        <div class="result"><span class="num">v2</span><span class="cap">revamp of a payments platform for accommodation providers across Asia and Oceania.</span></div>
+        <details><summary>How</summary><p>Managed end-to-end Agile delivery and owned the product roadmap.</p></details>
+      </article>
+      <article class="case" aria-roledescription="slide">
+        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/amplify-now.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">AN</span></span><span class="pill">SPM SaaS</span><span class="when">2026 – now</span></div>
+        <h3>Amplify-now<small>Product Manager</small></h3>
+        <div class="result"><span class="cap">Product manager on enterprise strategy-execution software.</span></div>
       </article>
     </div>
     <div class="car-ctrl">
@@ -440,7 +435,6 @@
       <button class="car-btn" type="button" data-dir="1" aria-controls="case-track" aria-label="Next case study"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
       <span class="car-count" aria-live="polite">1 / 4</span>
       <div class="car-rail" aria-hidden="true"><div class="car-thumb"></div></div>
-      <span class="car-hint">Drag, scroll or swipe sideways</span>
     </div>
   </section>
 
@@ -448,50 +442,33 @@
   <section id="experience" aria-labelledby="exp-h">
     <div class="head">
       <h2 id="exp-h"><span>Experience</span></h2>
-      <p>Seven years of product roles across Australia, Hong Kong and Vietnam.</p>
+      <div class="chips"><span class="pill">7 years</span><span class="pill">9 roles</span><span class="pill">3 countries</span></div>
     </div>
     <ul class="exp">
-      <li><div class="row"><span class="when">Now</span><span class="role">Product Manager</span><span class="muted">Amplify-now, SPM SaaS</span><span class="muted where">Adelaide</span></div></li>
-      <li><a href="https://www.vivaenergy.com.au/" target="_blank" rel="noopener"><span class="when">Jan 25 –</span><span class="role">App Product Manager</span><span class="muted">Viva Energy Retail, fuel &amp; convenience</span><span class="muted where">Adelaide</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://www.leadingdirections.io/" target="_blank" rel="noopener"><span class="when">Oct 23 – Dec 24</span><span class="role">Product Manager</span><span class="muted">Leading Directions, NDIS &amp; DES</span><span class="muted where">Queensland</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://hamletco.space/" target="_blank" rel="noopener"><span class="when">May 24 – Nov 24</span><span class="role">Product Manager</span><span class="muted">Hamlet, coworking</span><span class="muted where">Sydney</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://www.meeopp.com/" target="_blank" rel="noopener"><span class="when">Oct 22 – Oct 23</span><span class="role">Product Manager</span><span class="muted">Meeopp, edtech</span><span class="muted where">Hong Kong</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://kovena.com/" target="_blank" rel="noopener"><span class="when">Nov 22 – Jun 23</span><span class="role">Product Manager</span><span class="muted">Kovena, fintech</span><span class="muted where">Melbourne</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://www.ourxplor.com/" target="_blank" rel="noopener"><span class="when">Jun 22 – Oct 22</span><span class="role">Product Owner</span><span class="muted">Xplor, childcare</span><span class="muted where">Melbourne</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://www.credshare.com/" target="_blank" rel="noopener"><span class="when">Sep 21 – May 22</span><span class="role">Product Manager</span><span class="muted">CredShare, regtech</span><span class="muted where">Perth</span><span class="sr-only"> (opens in a new tab)</span></a></li>
-      <li><a href="https://kienguru.vn/" target="_blank" rel="noopener"><span class="when">Apr 19 – Sep 21</span><span class="role">Product Lead</span><span class="muted">KienGuru, edtech</span><span class="muted where">Ho Chi Minh City</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://amplify-now.com/" target="_blank" rel="noopener"><span class="when">2026 – now</span><span class="role">Product Manager</span><span class="muted">Amplify-now</span><span class="muted where">Adelaide</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://www.vivaenergy.com.au/" target="_blank" rel="noopener"><span class="when">Jan 25 – Aug 26</span><span class="role">App Product Manager</span><span class="muted">Viva Energy Retail</span><span class="muted where">Adelaide</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://hamletco.space/" target="_blank" rel="noopener"><span class="when">Aug 24 – Nov 24</span><span class="role">Product Manager</span><span class="muted">Hamlet Co. <span class="tag">Contract</span></span><span class="muted where">Sydney, remote</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://leadingdirections.io/" target="_blank" rel="noopener"><span class="when">Oct 23 – Dec 24</span><span class="role">Product Manager</span><span class="muted">Leading Direction <span class="tag">Part-time contract</span></span><span class="muted where">Sunshine Coast, remote</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://kovena.com/" target="_blank" rel="noopener"><span class="when">Dec 22 – Feb 23</span><span class="role">Product Manager</span><span class="muted">Kovena <span class="tag">Contract</span></span><span class="muted where">Melbourne, remote</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://meeopp.com/" target="_blank" rel="noopener"><span class="when">Nov 22 – Jan 23</span><span class="role">Product Manager</span><span class="muted">MeeOpp <span class="tag">Contract</span></span><span class="muted where">Hong Kong, remote</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://www.xplortechnologies.com/" target="_blank" rel="noopener"><span class="when">May 22 – Oct 22</span><span class="role">Product Owner</span><span class="muted">Xplor Education</span><span class="muted where">Melbourne, remote</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://www.credshare.com/" target="_blank" rel="noopener"><span class="when">Sep 21 – May 22</span><span class="role">Product Manager</span><span class="muted">Credshare</span><span class="muted where">Perth, remote</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://kienguru.vn/" target="_blank" rel="noopener"><span class="when">Apr 19 – Sep 21</span><span class="role">Product Lead</span><span class="muted">KienGuru</span><span class="muted where">Ho Chi Minh City</span><span class="sr-only"> (opens in a new tab)</span></a></li>
     </ul>
+    <p class="edu-line"><strong>Earlier:</strong> Bachelor of Business, Griffith University, 2014.</p>
   </section>
 
   <!-- STACK -->
   <section id="stack" class="stack" aria-labelledby="stack-h">
     <div class="head">
       <h2 id="stack-h"><span>Tech stack</span></h2>
-      <p>Figma, Power BI, Jira, Confluence, Power Automate, Cursor, Claude and Monday.</p>
     </div>
+    <ul class="sr-only"><li>Figma</li><li>Power BI</li><li>Claude</li><li>Jira</li><li>Cursor</li><li>SQL</li><li>Snowflake</li><li>Braze</li><li>Confluence</li><li>Gemini</li></ul>
     <div class="lane" data-dir="-1" aria-hidden="true">
       <span>Figma</span><span class="hollow">Power BI</span><span class="lit">Claude</span><span>Jira</span><span class="hollow">Cursor</span><span>Figma</span><span class="hollow">Power BI</span><span class="lit">Claude</span><span>Jira</span>
     </div>
     <div class="lane" data-dir="1" aria-hidden="true">
-      <span class="hollow">Confluence</span><span>Automate</span><span class="lit">Monday</span><span class="hollow">Cursor</span><span>Confluence</span><span class="hollow">Automate</span><span>Monday</span><span class="lit">Confluence</span>
-    </div>
-  </section>
-
-  <!-- EDUCATION -->
-  <section aria-labelledby="edu-h">
-    <div class="head">
-      <h2 id="edu-h"><span>Education</span></h2>
-    </div>
-    <div class="edu">
-      <article>
-        <h3>Master of Computer Science</h3>
-        <p>University of Adelaide, 2023 – 2024.</p>
-        <a class="btn sm outline" href="https://www.myequals.net/sharelink/00f89721-33fd-4a1c-ae31-827eb1f09156/54f239ec-53e0-4277-9441-44743fbc162e" target="_blank" rel="noopener">View credential<span class="sr-only"> (opens in a new tab)</span></a>
-      </article>
-      <article>
-        <h3>Bachelor of Business</h3>
-        <p>Tourism and Hotel, Griffith University, Brisbane, 2012 – 2014.</p>
-      </article>
+      <span class="hollow">SQL</span><span>Snowflake</span><span class="lit">Braze</span><span class="hollow">Confluence</span><span>Gemini</span><span class="hollow">SQL</span><span>Snowflake</span><span class="lit">Braze</span><span class="hollow">Confluence</span>
     </div>
   </section>
 
@@ -499,13 +476,12 @@
   <section id="contact" class="contact" aria-labelledby="contact-h">
     <h2 id="contact-h">Let's talk</h2>
     <div class="cta">
-      <!-- Email button hidden until an address is confirmed:
-      <a class="btn magnetic" href="mailto:REPLACE_WITH_EMAIL">Email me</a> -->
+      <a class="btn magnetic" href="mailto:davidphamle@gmail.com">Email me</a>
+      <a class="btn magnetic" href="https://www.linkedin.com/in/davidphamle/" target="_blank" rel="noopener">LinkedIn<span class="sr-only"> (opens in a new tab)</span></a>
       <a class="btn magnetic" href="https://drive.google.com/file/d/1v0ZzTSa_YepAs6BYjoaAf6q4SUH710pT/view?usp=download" target="_blank" rel="noopener">Download CV<span class="sr-only"> (opens in a new tab)</span></a>
     </div>
     <div class="foot">
       <span>© 2026 David Pham Le</span>
-      <span>Adelaide, Australia</span>
     </div>
   </section>
 
@@ -557,9 +533,11 @@
         scrollTrigger: { trigger: ".stack", start: "top bottom", end: "bottom top", scrub: true } });
     });
 
-    // Education cards rise in.
-    gsap.from(".edu article", { y: 40, opacity: 0, duration: .8, ease: "power3.out", stagger: .12,
-      scrollTrigger: { trigger: ".edu", start: "top 85%" } });
+    // Case results count in when the card scrolls into view (numbers only).
+    gsap.utils.toArray(".result .num").forEach((el) => {
+      gsap.from(el, { yPercent: 40, opacity: 0, duration: .8, ease: "power3.out",
+        scrollTrigger: { trigger: el, start: "top 90%" } });
+    });
 
     // Contact: diagonal reveal, then the headline letters drop in.
     const h = document.querySelector(".contact h2");
