@@ -106,30 +106,32 @@
   /* ---------- hero ---------- */
   .hero {
     position: relative; min-height: 100svh;
-    padding: 110px var(--gutter) 40px;
-    display: grid; grid-template-rows: 1fr auto;
+    padding: 96px var(--gutter) 40px;
+    display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: 1fr auto; gap: clamp(56px, 7vw, 96px);
     overflow: hidden;
   }
+  .hero-main { align-self: center; position: relative; z-index: 2; min-width: 0; }
   .field {
     position: absolute; inset: 0; width: 100%; height: 100%;
     z-index: 0; pointer-events: none; display: block;
   }
   .name {
     font-family: var(--display); font-weight: 900; text-transform: uppercase;
-    font-size: clamp(88px, min(21vw, 25svh), 340px); line-height: 0.8; letter-spacing: -0.02em;
-    align-self: center; position: relative; z-index: 2;
+    font-size: clamp(76px, min(18vw, 23svh), 300px); line-height: 0.82; letter-spacing: -0.02em;
+    position: relative; z-index: 2;
   }
   .name .row { display: block; overflow: hidden; padding-bottom: 0.04em; }
   .name .row span { display: inline-block; }
-  .name .row:nth-child(2) { padding-left: 0.6em; }
-  .name .row:nth-child(3) { padding-left: 1.6em; }
+  .name .row:nth-child(2) { padding-left: 0.5em; }
 
   .band {
-    position: absolute; left: -10vw; right: -10vw; top: 54%;
-    height: clamp(44px, 6vw, 78px);
+    /* sits in the flow under the name, bleeding past both edges, so it never crosses the letters */
+    position: relative; z-index: 1;
+    margin: clamp(28px, 4vw, 56px) calc(-1 * var(--gutter) - 6vw) 0;
+    height: clamp(48px, 5.5vw, 76px);
     background: var(--fill); color: var(--on-fill);
-    transform: rotate(-7deg); transform-origin: center;
-    display: flex; align-items: center; overflow: hidden; z-index: 1;
+    transform: rotate(-3deg); transform-origin: center;
+    display: flex; align-items: center; overflow: hidden;
   }
   .band-track { display: flex; white-space: nowrap; will-change: transform; }
   .band-track span {
@@ -170,14 +172,40 @@
   /* ---------- case studies ---------- */
   .cases { overflow: hidden; }
   .track {
-    display: flex; gap: clamp(16px, 2vw, 28px);
-    padding: 0 var(--gutter) 40px;
-    width: max-content;
+    display: flex; gap: clamp(14px, 2vw, 28px);
+    padding: 12px var(--gutter) 28px;
+    overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scroll-padding-inline: var(--gutter);
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
     perspective: 1200px;
   }
+  .track::-webkit-scrollbar { display: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .track { cursor: grab; scroll-snap-type: x proximity; }
+    .track.dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
+  }
+  .track:focus-visible { outline-offset: -3px; }
+  .car-ctrl {
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 var(--gutter);
+  }
+  .car-btn {
+    display: inline-grid; place-items: center; width: 52px; height: 52px; flex: none;
+    background: var(--fill); color: var(--on-fill); border: 0; cursor: pointer;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+    transition: background .2s, color .2s;
+  }
+  .car-btn:hover { background: #ffffff; color: var(--fill); }
+  .car-btn[aria-disabled="true"] { background: #2a2a2a; color: var(--ash); cursor: default; }
+  .car-btn svg { width: 22px; height: 22px; }
+  .car-rail { flex: 1; height: 4px; background: var(--line); position: relative; max-width: 420px; }
+  .car-thumb { position: absolute; inset: 0 auto 0 0; background: var(--glow); width: 25%; }
+  .car-count { font-size: 15px; color: var(--ash); font-variant-numeric: tabular-nums; min-width: 4ch; }
+  .car-hint { font-size: 15px; color: var(--ash); margin-left: auto; }
   .case {
     position: relative;
-    width: min(78vw, 760px); min-height: 520px;
+    flex: 0 0 min(78vw, 760px); min-height: 500px;
+    scroll-snap-align: start;
     background: var(--panel);
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 56px), calc(100% - 56px) 100%, 0 100%);
     padding: clamp(24px, 3vw, 44px);
@@ -186,7 +214,6 @@
   }
   .case::before {
     content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--glow);
-    transform: scaleY(var(--fill-y, 1)); transform-origin: top;
   }
   .case::after {
     /* pointer-follow light, purely decorative */
@@ -202,7 +229,21 @@
     -webkit-mask-composite: xor; mask-composite: exclude;
     opacity: var(--glare, 0); transition: opacity .3s;
   }
-  .case-top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; color: var(--ash); font-size: 15px; }
+  .case-top { display: flex; align-items: center; gap: 14px; color: var(--ash); font-size: 15px; flex-wrap: wrap; }
+  .case-top .when { margin-left: auto; }
+  .logo {
+    /* white tile so any brand logo sits cleanly on the dark card; initials until the logo file is added */
+    width: 56px; height: 56px; flex: none; display: grid; place-items: center;
+    background: #ffffff; border-radius: 12px; overflow: hidden;
+    font-family: var(--display); font-weight: 900; font-size: 24px; line-height: 1; color: var(--fill);
+  }
+  .logo img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+  .pill {
+    display: inline-flex; align-items: center; min-height: 30px; padding: 4px 14px;
+    border-radius: 999px; border: 1px solid rgba(140,192,255,.45);
+    background: rgba(140,192,255,.12); color: var(--blue-text);
+    font-size: 14px; font-weight: 600; white-space: nowrap;
+  }
   .case h3 {
     font-family: var(--display); font-weight: 900; text-transform: uppercase;
     font-size: clamp(54px, 7vw, 112px); line-height: 0.85; color: var(--bone);
@@ -283,24 +324,20 @@
   /* ---------- responsive ---------- */
   @media (max-width: 480px) {
     .nav ul li.hide-sm { display: none; }
-    .band { top: 42% !important; }
-    .hero-foot { margin-top: 56px; }
+    .car-hint { display: none; }
     .cta .btn { width: 100%; min-height: 56px; font-size: 18px; }
     .edu .btn { width: 100%; }
   }
   @media (max-width: 860px) {
     .hero-foot { grid-template-columns: 1fr; }
     .now { text-align: left; }
-    .track { flex-direction: column; width: auto; }
-    .case { width: 100%; min-height: 0; }
+    .case { flex-basis: 86vw; min-height: 0; }
     .case dl { grid-template-columns: 1fr; gap: 16px; }
     .exp a, .exp .row { grid-template-columns: 1fr; gap: 4px; padding: 18px 4px; }
     .exp .where { text-align: left; }
     .edu { grid-template-columns: 1fr; gap: 36px; }
-    .name { font-size: min(27vw, 25svh); }
-    .name .row:nth-child(2) { padding-left: 0.35em; }
-    .name .row:nth-child(3) { padding-left: 0.8em; }
-    .band { top: 50%; }
+    .name { font-size: min(23vw, 26svh); }
+    .name .row:nth-child(2) { padding-left: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
     .now .pulse { animation: none; }
@@ -331,10 +368,10 @@
   <header class="hero">
     <canvas class="field" aria-hidden="true"></canvas>
 
+    <div class="hero-main">
     <h1 class="name" aria-label="David Pham Le">
       <span class="row"><span>David</span></span>
-      <span class="row"><span>Pham</span></span>
-      <span class="row"><span>Le</span></span>
+      <span class="row"><span>Pham Le</span></span>
     </h1>
 
     <div class="band" aria-hidden="true">
@@ -342,6 +379,7 @@
         <span>Product management</span><span>/</span><span>Data analytics</span><span>/</span><span>Product design</span><span>/</span><span>AI in the loop</span><span>/</span>
         <span>Product management</span><span>/</span><span>Data analytics</span><span>/</span><span>Product design</span><span>/</span><span>AI in the loop</span><span>/</span>
       </div>
+    </div>
     </div>
 
     <div class="hero-foot">
@@ -356,38 +394,37 @@
       <h2 id="work-h"><span>Selected work</span></h2>
       <p>A few roles, told as the problem, what I did, and what changed.</p>
     </div>
-    <div class="track-wrap">
-    <div class="track">
-      <article class="case">
-        <div class="case-top"><span>SPM SaaS</span><span>Now</span></div>
-        <h3>Amplify-now<small>Product Manager</small></h3>
+    <div class="track" id="case-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Case studies, scroll sideways">
+      <article class="case" aria-roledescription="slide">
+        <div class="case-top"><span class="logo" aria-hidden="true">AN</span><span class="pill">SPM SaaS</span><span class="when">Now</span></div>
+        <h3>Amplify-now<small>Product Manager, Adelaide</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem you were brought in to solve.</dd></div>
           <div><dt>What I did</dt><dd class="todo">Add the 1–2 moves you made.</dd></div>
           <div><dt>Outcome</dt><dd class="todo">Add a measurable result.</dd></div>
         </dl>
       </article>
-      <article class="case">
-        <div class="case-top"><span>Fuel &amp; convenience</span><span>From Jan 2025</span></div>
-        <h3>On The Run<small>App Product Manager</small></h3>
+      <article class="case" aria-roledescription="slide">
+        <div class="case-top"><span class="logo" aria-hidden="true">VE</span><span class="pill">Fuel &amp; convenience</span><span class="when">From Jan 2025</span></div>
+        <h3>Viva Energy Retail<small>App Product Manager, Adelaide</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
           <div><dt>What I did</dt><dd class="todo">Add what you did.</dd></div>
           <div><dt>Outcome</dt><dd class="todo">Add the result.</dd></div>
         </dl>
       </article>
-      <article class="case">
-        <div class="case-top"><span>Fintech, Melbourne</span><span>Nov 2022 – Jun 2023</span></div>
-        <h3>Kovena<small>Product Manager</small></h3>
+      <article class="case" aria-roledescription="slide">
+        <div class="case-top"><span class="logo" aria-hidden="true">K</span><span class="pill">Fintech</span><span class="when">Nov 2022 – Jun 2023</span></div>
+        <h3>Kovena<small>Product Manager, Melbourne</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
           <div><dt>What I did</dt><dd class="todo">Add what you did.</dd></div>
           <div><dt>Outcome</dt><dd class="todo">Add the result.</dd></div>
         </dl>
       </article>
-      <article class="case">
-        <div class="case-top"><span>Edtech, Ho Chi Minh City</span><span>Apr 2019 – Sep 2021</span></div>
-        <h3>KienGuru<small>Product Lead</small></h3>
+      <article class="case" aria-roledescription="slide">
+        <div class="case-top"><span class="logo" aria-hidden="true">KG</span><span class="pill">Edtech</span><span class="when">Apr 2019 – Sep 2021</span></div>
+        <h3>KienGuru<small>Product Lead, Ho Chi Minh City</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
           <div><dt>What I did</dt><dd class="todo">Add what you did.</dd></div>
@@ -395,6 +432,12 @@
         </dl>
       </article>
     </div>
+    <div class="car-ctrl">
+      <button class="car-btn" type="button" data-dir="-1" aria-controls="case-track" aria-label="Previous case study"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="car-btn" type="button" data-dir="1" aria-controls="case-track" aria-label="Next case study"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
+      <span class="car-count" aria-live="polite">1 / 4</span>
+      <div class="car-rail" aria-hidden="true"><div class="car-thumb"></div></div>
+      <span class="car-hint">Drag, scroll or swipe sideways</span>
     </div>
   </section>
 
@@ -406,7 +449,7 @@
     </div>
     <ul class="exp">
       <li><div class="row"><span class="when">Now</span><span class="role">Product Manager</span><span class="muted">Amplify-now, SPM SaaS</span><span class="muted where">Adelaide</span></div></li>
-      <li><a href="https://www.otr.com.au/otr-app" target="_blank" rel="noopener"><span class="when">Jan 25 –</span><span class="role">App Product Manager</span><span class="muted">On The Run, fuel &amp; convenience</span><span class="muted where">Adelaide</span><span class="sr-only"> (opens in a new tab)</span></a></li>
+      <li><a href="https://www.vivaenergy.com.au/" target="_blank" rel="noopener"><span class="when">Jan 25 –</span><span class="role">App Product Manager</span><span class="muted">Viva Energy Retail, fuel &amp; convenience</span><span class="muted where">Adelaide</span><span class="sr-only"> (opens in a new tab)</span></a></li>
       <li><a href="https://www.leadingdirections.io/" target="_blank" rel="noopener"><span class="when">Oct 23 – Dec 24</span><span class="role">Product Manager</span><span class="muted">Leading Directions, NDIS &amp; DES</span><span class="muted where">Queensland</span><span class="sr-only"> (opens in a new tab)</span></a></li>
       <li><a href="https://hamletco.space/" target="_blank" rel="noopener"><span class="when">May 24 – Nov 24</span><span class="role">Product Manager</span><span class="muted">Hamlet, coworking</span><span class="muted where">Sydney</span><span class="sr-only"> (opens in a new tab)</span></a></li>
       <li><a href="https://www.meeopp.com/" target="_blank" rel="noopener"><span class="when">Oct 22 – Oct 23</span><span class="role">Product Manager</span><span class="muted">Meeopp, edtech</span><span class="muted where">Hong Kong</span><span class="sr-only"> (opens in a new tab)</span></a></li>
@@ -473,23 +516,6 @@
   gsap.registerPlugin(ScrollTrigger);
   const mm = gsap.matchMedia();
 
-  // Set up the pinned section FIRST so every later trigger accounts for its extra scroll length.
-  // Wide screens: pinned horizontal case-study run.
-  mm.add("(min-width: 861px) and (prefers-reduced-motion: no-preference)", () => {
-    const track = document.querySelector(".track");
-    const cards = gsap.utils.toArray(".case");
-    const distance = () => track.scrollWidth - window.innerWidth;
-    const run = gsap.to(track, {
-      x: () => -distance(), ease: "none",
-      scrollTrigger: { trigger: ".track-wrap", start: "center center", end: () => "+=" + distance(), pin: true, scrub: 1, invalidateOnRefresh: true }
-    });
-    cards.forEach((card) => {
-      gsap.fromTo(card, { "--fill-y": 0 }, { "--fill-y": 1, ease: "none",
-        scrollTrigger: { trigger: card, containerAnimation: run, start: "left 85%", end: "left 35%", scrub: true } });
-    });
-  });
-
-
   mm.add("(prefers-reduced-motion: no-preference)", () => {
 
     // Load sequence: a blue wipe, the name cuts in on a diagonal, the band sweeps across.
@@ -508,8 +534,8 @@
     const heroScroll = { trigger: ".hero", start: "top top", end: "bottom top", scrub: true };
     gsap.to(".band-track", { xPercent: -40, ease: "none", scrollTrigger: heroScroll });
     gsap.to(".name .row:nth-child(1)", { xPercent: -12, ease: "none", scrollTrigger: heroScroll });
-    gsap.to(".name .row:nth-child(3)", { xPercent: 14, ease: "none", scrollTrigger: heroScroll });
-    gsap.to(".band", { rotate: -2, ease: "none", scrollTrigger: heroScroll });
+    gsap.to(".name .row:nth-child(2)", { xPercent: 8, ease: "none", scrollTrigger: heroScroll });
+    gsap.to(".band", { rotate: -1, ease: "none", scrollTrigger: heroScroll });
 
     // Section titles slice in.
     gsap.utils.toArray(".head h2 span").forEach((el) => {
@@ -575,6 +601,77 @@
   });
 
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ScrollTrigger.refresh());
+})();
+</script>
+
+<script>
+// Case-study carousel: native swipe on touch, trackpad sideways scroll, mouse drag,
+// mouse wheel over the cards, arrow buttons and arrow keys.
+(function () {
+  const track = document.getElementById("case-track");
+  if (!track) return;
+  const cards = [...track.querySelectorAll(".case")];
+  const prev = document.querySelector('.car-btn[data-dir="-1"]');
+  const next = document.querySelector('.car-btn[data-dir="1"]');
+  const count = document.querySelector(".car-count");
+  const thumb = document.querySelector(".car-thumb");
+  const smooth = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  cards.forEach((c, i) => c.setAttribute("aria-label", `${i + 1} of ${cards.length}`));
+
+  const step = () => cards[1] ? cards[1].offsetLeft - cards[0].offsetLeft : track.clientWidth;
+  const max = () => track.scrollWidth - track.clientWidth;
+  const index = () => Math.round(track.scrollLeft / step());
+  const go = (i) => track.scrollTo({ left: Math.max(0, Math.min(i, cards.length - 1)) * step(), behavior: smooth });
+
+  function update() {
+    const m = max(), x = track.scrollLeft;
+    const i = Math.min(cards.length - 1, index());
+    count.textContent = `${i + 1} / ${cards.length}`;
+    const frac = track.clientWidth / track.scrollWidth;
+    thumb.style.width = frac * 100 + "%";
+    thumb.style.transform = `translateX(${m ? (x / m) * (1 / frac - 1) * 100 : 0}%)`;
+    prev.setAttribute("aria-disabled", x <= 2);
+    next.setAttribute("aria-disabled", x >= m - 2);
+  }
+  track.addEventListener("scroll", update, { passive: true });
+  addEventListener("resize", update);
+  update();
+
+  prev.addEventListener("click", () => go(index() - 1));
+  next.addEventListener("click", () => go(index() + 1));
+  track.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); go(index() + 1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); go(index() - 1); }
+  });
+
+  // Mouse wheel: while the pointer is over the cards, vertical wheel moves them sideways,
+  // and hands back to normal page scrolling once the first or last card is reached.
+  track.addEventListener("wheel", (e) => {
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;          // trackpad sideways: native
+    const x = track.scrollLeft, m = max();
+    if ((e.deltaY > 0 && x >= m - 2) || (e.deltaY < 0 && x <= 2)) return;
+    e.preventDefault();
+    track.scrollLeft += e.deltaY;
+  }, { passive: false });
+
+  // Mouse drag (touch already swipes natively).
+  let down = false, startX = 0, startLeft = 0, moved = false;
+  track.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    down = true; moved = false; startX = e.clientX; startLeft = track.scrollLeft;
+  });
+  addEventListener("pointermove", (e) => {
+    if (!down) return;
+    const dx = e.clientX - startX;
+    if (!moved && Math.abs(dx) > 4) { moved = true; track.classList.add("dragging"); }
+    if (moved) track.scrollLeft = startLeft - dx;
+  });
+  addEventListener("pointerup", () => {
+    if (!down) return;
+    down = false;
+    if (moved) { track.classList.remove("dragging"); go(index()); }
+  });
+  track.addEventListener("click", (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
 })();
 </script>
 
