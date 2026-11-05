@@ -212,6 +212,16 @@
     display: flex; align-items: center; overflow: hidden;
   }
   .band-track { display: flex; white-space: nowrap; will-change: transform; }
+  .band-toggle {
+    position: absolute; right: 0; top: calc(100% + 14px);
+    display: inline-grid; place-items: center; width: 44px; height: 44px;
+    background: var(--void); color: var(--bone); border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  }
+  .band-toggle:hover { background: var(--pill-bg-hover); color: var(--blue-text); }
+  .band-toggle svg { width: 16px; height: 16px; }
+  .band-toggle .i-play { display: none; }
+  .band-toggle[data-paused="true"] .i-play { display: block; }
+  .band-toggle[data-paused="true"] .i-pause { display: none; }
   .band-track span {
     font-family: var(--display); font-weight: 700; text-transform: uppercase;
     font-size: clamp(22px, 2.6vw, 38px); padding-right: 1.2em; letter-spacing: 0.01em;
@@ -467,6 +477,7 @@
         <span>Product management</span><span>/</span><span>Data analytics</span><span>/</span><span>Product design</span><span>/</span><span>AI in the loop</span><span>/</span>
       </div>
     </div>
+    <button class="band-toggle" type="button" aria-label="Pause the moving banner" hidden><svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg><svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
     </div>
 
     <div class="hero-foot">
@@ -594,7 +605,6 @@
 
     // Band and name react to scroll (no autoplaying motion).
     const heroScroll = { trigger: ".hero", start: "top top", end: "bottom top", scrub: true };
-    gsap.to(".band-track", { xPercent: -40, ease: "none", scrollTrigger: heroScroll });
     gsap.to(".name .row:nth-child(1)", { xPercent: -12, ease: "none", scrollTrigger: heroScroll });
     gsap.to(".name .row:nth-child(2)", { xPercent: 8, ease: "none", scrollTrigger: heroScroll });
     gsap.to(".band", { rotate: -1, ease: "none", scrollTrigger: heroScroll });
@@ -665,6 +675,74 @@
   });
 
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ScrollTrigger.refresh());
+})();
+</script>
+
+<script>
+// Ribbon motion. It moves with scroll, and drifts on its own after ~2.5s with no input,
+// stopping as soon as the visitor scrolls, moves the pointer or presses a key.
+// WCAG 2.2.2: the drift can be paused with the button next to it (choice remembered);
+// with reduced motion on there is no movement and no button.
+(function () {
+  const band = document.querySelector(".band"), track = document.querySelector(".band-track");
+  const btn = document.querySelector(".band-toggle");
+  if (!band || !track || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  // Repeat the phrase set until the track is wider than the band plus one set, for a seamless loop.
+  const setLen = 8, base = [...track.children].slice(0, setLen);
+  let copyW = 0;
+  function build() {
+    copyW = track.children[setLen].offsetLeft - track.children[0].offsetLeft;
+    while (track.scrollWidth < band.clientWidth + copyW * 1.5) base.forEach((n) => track.appendChild(n.cloneNode(true)));
+  }
+  build();
+
+  let paused = false; try { paused = localStorage.getItem("bannerPaused") === "1"; } catch (e) {}
+  btn.hidden = false;
+  function setPaused(p, save) {
+    paused = p;
+    btn.dataset.paused = String(p);
+    btn.setAttribute("aria-label", p ? "Play the moving banner" : "Pause the moving banner");
+    if (save) { try { localStorage.setItem("bannerPaused", p ? "1" : "0"); } catch (e) {} }
+    kick();
+  }
+  btn.addEventListener("click", () => setPaused(!paused, true));
+
+  const SPEED = 45, IDLE_MS = 2500;           // px per second, idle delay
+  let drift = 0, vel = 0, last = performance.now(), lastInput = performance.now(), running = false, visible = true;
+
+  function apply() {
+    const off = (drift + scrollY * 0.6) % copyW;
+    track.style.transform = `translate3d(${-off}px,0,0)`;
+  }
+  function frame(now) {
+    const dt = Math.min((now - last) / 1000, .05); last = now;
+    const idle = now - lastInput > IDLE_MS;
+    const target = idle && visible && !paused && !document.hidden ? SPEED : 0;
+    vel += (target - vel) * Math.min(1, dt * 3);   // ease in and out
+    drift += vel * dt;
+    apply();
+    if (target > 0 || vel > .5) requestAnimationFrame(frame);
+    else { vel = 0; running = false; schedule(); }
+  }
+  let timer;
+  function schedule() {                         // wake the loop once the page has gone idle
+    clearTimeout(timer);
+    if (paused || !visible) return;
+    timer = setTimeout(kick, Math.max(0, IDLE_MS - (performance.now() - lastInput)) + 30);
+  }
+  function kick() {
+    if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+  }
+  function input() { lastInput = performance.now(); if (!running) schedule(); }
+  ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"].forEach((t) => addEventListener(t, input, { passive: true }));
+  addEventListener("scroll", () => { input(); apply(); }, { passive: true });
+  addEventListener("resize", () => { build(); apply(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { input(); } });
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) schedule(); }).observe(band);
+
+  setPaused(paused, false);
+  apply(); schedule();
 })();
 </script>
 
