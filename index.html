@@ -191,7 +191,15 @@
   .case::after {
     /* pointer-follow light, purely decorative */
     content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(77,155,255,.10), transparent 60%);
+    background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(140,192,255,.22), transparent 65%);
+    opacity: var(--glare, 0); transition: opacity .3s;
+  }
+  .case .edge {
+    /* bright rim that tracks the cursor around the card edge */
+    position: absolute; inset: 0; padding: 2px; pointer-events: none;
+    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), #8cc0ff, transparent 75%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
     opacity: var(--glare, 0); transition: opacity .3s;
   }
   .case-top { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; color: var(--ash); font-size: 15px; }
@@ -465,6 +473,23 @@
   gsap.registerPlugin(ScrollTrigger);
   const mm = gsap.matchMedia();
 
+  // Set up the pinned section FIRST so every later trigger accounts for its extra scroll length.
+  // Wide screens: pinned horizontal case-study run.
+  mm.add("(min-width: 861px) and (prefers-reduced-motion: no-preference)", () => {
+    const track = document.querySelector(".track");
+    const cards = gsap.utils.toArray(".case");
+    const distance = () => track.scrollWidth - window.innerWidth;
+    const run = gsap.to(track, {
+      x: () => -distance(), ease: "none",
+      scrollTrigger: { trigger: ".track-wrap", start: "center center", end: () => "+=" + distance(), pin: true, scrub: 1, invalidateOnRefresh: true }
+    });
+    cards.forEach((card) => {
+      gsap.fromTo(card, { "--fill-y": 0 }, { "--fill-y": 1, ease: "none",
+        scrollTrigger: { trigger: card, containerAnimation: run, start: "left 85%", end: "left 35%", scrub: true } });
+    });
+  });
+
+
   mm.add("(prefers-reduced-motion: no-preference)", () => {
 
     // Load sequence: a blue wipe, the name cuts in on a diagonal, the band sweeps across.
@@ -499,7 +524,7 @@
     // Stack lanes slide against each other with scroll.
     gsap.utils.toArray(".lane").forEach((lane) => {
       const dir = Number(lane.dataset.dir);
-      gsap.fromTo(lane, { xPercent: dir > 0 ? -30 : 0 }, { xPercent: dir > 0 ? 0 : -30, ease: "none",
+      gsap.fromTo(lane, { xPercent: dir > 0 ? -35 : 0 }, { xPercent: dir > 0 ? 0 : -35, ease: "none",
         scrollTrigger: { trigger: ".stack", start: "top bottom", end: "bottom top", scrub: true } });
     });
 
@@ -518,25 +543,13 @@
       scrollTrigger: { trigger: ".contact", start: "top 65%" } });
   });
 
-  // Wide screens: pinned horizontal case-study run.
-  mm.add("(min-width: 861px) and (prefers-reduced-motion: no-preference)", () => {
-    const track = document.querySelector(".track");
-    const cards = gsap.utils.toArray(".case");
-    const distance = () => track.scrollWidth - window.innerWidth;
-    const run = gsap.to(track, {
-      x: () => -distance(), ease: "none",
-      scrollTrigger: { trigger: ".track-wrap", start: "center center", end: () => "+=" + distance(), pin: true, scrub: 1, invalidateOnRefresh: true }
-    });
-    cards.forEach((card) => {
-      gsap.fromTo(card, { "--fill-y": 0 }, { "--fill-y": 1, ease: "none",
-        scrollTrigger: { trigger: card, containerAnimation: run, start: "left 85%", end: "left 35%", scrub: true } });
-    });
-  });
-
   // Mouse/trackpad only: card tilt with a light that follows the cursor, and magnetic buttons.
   mm.add("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)", () => {
     const off = [];
     gsap.utils.toArray(".case").forEach((card) => {
+      const edge = document.createElement("span");
+      edge.className = "edge"; edge.setAttribute("aria-hidden", "true");
+      card.appendChild(edge); off.push(() => edge.remove());
       const rx = gsap.quickTo(card, "rotationX", { duration: .5, ease: "power3.out" });
       const ry = gsap.quickTo(card, "rotationY", { duration: .5, ease: "power3.out" });
       const move = (e) => {
@@ -560,6 +573,8 @@
     });
     return () => off.forEach(f => f());
   });
+
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => ScrollTrigger.refresh());
 })();
 </script>
 
@@ -597,7 +612,7 @@ if (renderer) {
 
   const uniforms = {
     uTime: { value: 0 }, uPulse: { value: 0 }, uPointer: { value: new THREE.Vector2(99, 99) },
-    uColor: { value: new THREE.Color("#4d9bff") }, uPR: { value: 1 }, uRes: { value: new THREE.Vector2(1, 1) }
+    uColor: { value: new THREE.Color("#8cc0ff") }, uPR: { value: 1 }, uRes: { value: new THREE.Vector2(1, 1) }
   };
   const mat = new THREE.ShaderMaterial({
     uniforms, transparent: true, depthWrite: false,
@@ -613,7 +628,7 @@ if (renderer) {
         vec4 mv = modelViewMatrix * vec4(p, 1.);
         gl_Position = projectionMatrix * mv;
         gl_PointSize = (2.4 + max(w, 0.)*2.2) * uPR * (9. / -mv.z);
-        vA = smoothstep(-10., -2., p.z) * (1. - smoothstep(2., 4., p.z)) * .9 + .1;
+        vA = smoothstep(-10., -2., p.z) * (1. - smoothstep(2., 4., p.z)) * .7 + .3;
       }`,
     fragmentShader: `
       uniform vec3 uColor; uniform vec2 uRes;
@@ -622,8 +637,9 @@ if (renderer) {
         float r = length(gl_PointCoord - .5); if (r > .5) discard;
         float fy = gl_FragCoord.y / uRes.y;           // 0 = bottom of hero
         float keepClear = smoothstep(.22, .55, fy);   // fade where the intro text sits
-        vec3 col = mix(uColor, vec3(1.), clamp(vH*.35, 0., .5));
-        gl_FragColor = vec4(col, (1. - r*2.) * vA * .8 * keepClear);
+        vec3 col = mix(uColor, vec3(1.), clamp(.15 + vH*.5, 0., .7));
+        float disc = 1. - smoothstep(.3, .5, r);       // solid dot, soft edge
+        gl_FragColor = vec4(col, disc * vA * keepClear);
       }`
   });
   scene.add(new THREE.Points(geo, mat));
