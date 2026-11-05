@@ -205,7 +205,9 @@
     position: relative; z-index: 2;
   }
   .name .row { display: block; overflow: hidden; padding-bottom: 0.04em; }
-  .name .row span { display: inline-block; }
+  .name .row > span { display: inline-block; }
+  .name .ltr { display: inline-block; transform-origin: 50% 100%; will-change: transform; }
+  .name.springy .row { overflow: visible; }
   .name .row:nth-child(2) { padding-left: 0.5em; }
 
   .band {
@@ -604,7 +606,7 @@
     gsap.set(".wipe", { clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" });
     const tl = gsap.timeline({ paused: true, defaults: { ease: "power4.out" } });
     tl.to(".wipe", { clipPath: "polygon(0 100%, 100% 100%, 100% 100%, 0 100%)", duration: .6, ease: "power3.inOut" })
-      .from(".name .row span", { yPercent: 110, skewY: 8, duration: 1, stagger: .09 }, "-=.35")
+      .from(".name .row > span", { yPercent: 110, skewY: 8, duration: 1, stagger: .09, onComplete: () => document.querySelector(".name").classList.add("springy") }, "-=.35")
       .from(".band", { xPercent: -110, duration: .9, ease: "expo.out" }, "-=.7")
       .from(".band-toggle", { opacity: 0, scale: .6, duration: .4, ease: "back.out(2)" }, "-=.35")
       .from(".hero-foot > *", { y: 24, opacity: 0, duration: .7, stagger: .1 }, "-=.5");
@@ -613,6 +615,36 @@
       document.documentElement.classList.remove("intro");
       ScrollTrigger.refresh();
       tl.play();
+    });
+
+    // Name letters spring when the pointer passes over them (tap on touch screens).
+    // Letters are split into spans; the h1 keeps its aria-label so screen readers read the name.
+    const letters = [];
+    document.querySelectorAll(".name .row > span").forEach((word) => {
+      const text = word.textContent; word.textContent = "";
+      [...text].forEach((ch) => {
+        if (ch === " ") { word.append(" "); return; }
+        const l = document.createElement("span"); l.className = "ltr"; l.textContent = ch;
+        word.appendChild(l); letters.push(l);
+      });
+    });
+    function spring(el, power) {
+      if (!document.querySelector(".name").classList.contains("springy")) return;  // wait for the intro
+      gsap.killTweensOf(el);
+      // Lift and stretch, then fall back without dipping into the line below (no y overshoot),
+      // while the stretch/squash wobbles on an elastic spring.
+      gsap.timeline()
+        .to(el, { yPercent: -16 * power, scaleY: 1 + .14 * power, scaleX: 1 - .06 * power, duration: .14, ease: "power2.out" })
+        .to(el, { yPercent: 0, duration: .5, ease: "power3.out" })
+        .to(el, { scaleY: 1, scaleX: 1, duration: 1.1, ease: "elastic.out(1.2, 0.25)" }, "<");
+    }
+    function hit(el) {
+      const i = letters.indexOf(el); spring(el, 1);
+      [letters[i - 1], letters[i + 1]].forEach((n) => n && n.parentNode === el.parentNode && spring(n, .45));
+    }
+    letters.forEach((l) => {
+      l.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") hit(l); });
+      l.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") hit(l); });
     });
 
     // Reading progress bar.
