@@ -16,6 +16,12 @@
     var t; try { t = localStorage.getItem("theme"); } catch (e) {}
     if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", t);
+    // Start fully covered by the blue wipe so the half-built hero never flashes.
+    // Failsafe: uncover after 4s even if the animation script never runs.
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.classList.add("intro");
+      setTimeout(function () { document.documentElement.classList.remove("intro"); }, 4000);
+    }
   })();
 </script>
 <link rel="canonical" href="https://davidphamle.com/">
@@ -418,6 +424,7 @@
     background: var(--fill);
     clip-path: polygon(0 0, 100% 0, 100% 0, 0 0);
   }
+  .intro .wipe { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); }
 
   /* ---------- responsive ---------- */
   @media (max-width: 480px) {
@@ -592,13 +599,21 @@
   mm.add("(prefers-reduced-motion: no-preference)", () => {
 
     // Load sequence: a blue wipe, the name cuts in on a diagonal, the band sweeps across.
-    const tl = gsap.timeline({ defaults: { ease: "power4.out" } });
-    tl.to(".wipe", { clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)", duration: .5, ease: "power3.in" })
-      .to(".wipe", { clipPath: "polygon(0 100%, 100% 100%, 100% 100%, 0 100%)", duration: .6, ease: "power3.inOut" })
+    // The page starts covered (see the .intro class set in <head>); everything below is
+    // hidden behind the wipe until it uncovers, so nothing is seen half-built.
+    gsap.set(".wipe", { clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" });
+    const tl = gsap.timeline({ paused: true, defaults: { ease: "power4.out" } });
+    tl.to(".wipe", { clipPath: "polygon(0 100%, 100% 100%, 100% 100%, 0 100%)", duration: .6, ease: "power3.inOut" })
       .from(".name .row span", { yPercent: 110, skewY: 8, duration: 1, stagger: .09 }, "-=.35")
       .from(".band", { xPercent: -110, duration: .9, ease: "expo.out" }, "-=.7")
-      .from(".hero-foot > *", { y: 24, opacity: 0, duration: .7, stagger: .1 }, "-=.5")
-      .from(".nav", { opacity: 0, duration: .5 }, "-=.6");
+      .from(".band-toggle", { opacity: 0, scale: .6, duration: .4, ease: "back.out(2)" }, "-=.35")
+      .from(".hero-foot > *", { y: 24, opacity: 0, duration: .7, stagger: .1 }, "-=.5");
+    const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    Promise.race([fontsReady, new Promise((r) => setTimeout(r, 1200))]).then(() => {
+      document.documentElement.classList.remove("intro");
+      ScrollTrigger.refresh();
+      tl.play();
+    });
 
     // Reading progress bar.
     gsap.to(".progress", { scaleX: 1, ease: "none", scrollTrigger: { start: 0, end: "max", scrub: .3 } });
