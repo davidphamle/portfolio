@@ -112,19 +112,43 @@
   }
 
   /* ---------- buttons ---------- */
+  /*
+    Notched buttons. The notch is drawn by two layers behind the label rather than by
+    clipping the button itself, so (1) the 2px border follows the diagonal cut and
+    (2) the keyboard focus ring isn't clipped away.
+      ::before = border colour, full notched shape
+      ::after  = fill colour, inset 2px; its cut is 1.17px smaller (2px border on a 45° edge)
+  */
+  .btn, .car-btn {
+    --cut: 14px; --bw: 2px;
+    --btn-bg: var(--fill); --btn-line: var(--fill); --btn-fg: var(--on-fill);
+    position: relative; isolation: isolate;
+    background: none; border: 0; color: var(--btn-fg);
+    transition: color .2s;
+  }
+  .btn::before, .btn::after, .car-btn::before, .car-btn::after {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    transition: background .2s;
+  }
+  .btn::before, .car-btn::before {
+    inset: 0; background: var(--btn-line);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%);
+  }
+  .btn::after, .car-btn::after {
+    inset: var(--bw); background: var(--btn-bg);
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--cut) + 1.17px), calc(100% - var(--cut) + 1.17px) 100%, 0 100%);
+  }
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 10px;
     min-height: 52px; padding: 0 28px;
     font-family: var(--body); font-weight: 600; font-size: 17px; line-height: 1; text-decoration: none;
-    background: var(--fill); color: var(--on-fill); border: 2px solid var(--fill);
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
-    transition: background .2s, color .2s, border-color .2s;
     will-change: transform;
   }
-  .btn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-fg); border-color: var(--btn-hover-bg); }
-  .btn.sm { min-height: 44px; padding: 0 18px; font-size: 15px; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); }
-  .btn.outline { background: transparent; color: var(--bone); border-color: var(--bone); }
-  .btn.outline:hover { background: var(--bone); color: var(--void); }
+  .btn:hover { --btn-bg: var(--btn-hover-bg); --btn-line: var(--btn-hover-bg); --btn-fg: var(--btn-hover-fg); }
+  .btn.sm { --cut: 10px; min-height: 44px; padding: 0 18px; font-size: 15px; }
+  .btn.outline { --btn-bg: var(--void); --btn-line: var(--bone); --btn-fg: var(--bone); }
+  .btn.outline:hover { --btn-bg: var(--bone); --btn-line: var(--bone); --btn-fg: var(--void); }
+  .btn:focus-visible, .car-btn:focus-visible { outline-offset: 3px; }
 
   /* ---------- nav ---------- */
   .nav {
@@ -239,13 +263,11 @@
     padding: 0 var(--gutter);
   }
   .car-btn {
-    display: inline-grid; place-items: center; width: 52px; height: 52px; flex: none;
-    background: var(--fill); color: var(--on-fill); border: 0; cursor: pointer;
-    clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
-    transition: background .2s, color .2s;
+    --cut: 12px;
+    display: inline-grid; place-items: center; width: 52px; height: 52px; flex: none; cursor: pointer;
   }
-  .car-btn:hover { background: var(--btn-hover-bg); color: var(--btn-hover-fg); }
-  .car-btn[aria-disabled="true"] { background: var(--disabled-bg); color: var(--ash); cursor: default; }
+  .car-btn:hover { --btn-bg: var(--btn-hover-bg); --btn-line: var(--btn-hover-bg); --btn-fg: var(--btn-hover-fg); }
+  .car-btn[aria-disabled="true"], .car-btn[aria-disabled="true"]:hover { --btn-bg: var(--disabled-bg); --btn-line: var(--disabled-bg); --btn-fg: var(--ash); cursor: default; }
   .car-btn svg { width: 22px; height: 22px; }
   .car-rail { flex: 1; height: 4px; background: var(--line); position: relative; max-width: 420px; }
   .car-thumb { position: absolute; inset: 0 auto 0 0; background: var(--glow); width: 25%; }
@@ -375,8 +397,8 @@
   }
   .contact h2 .ch { display: inline-block; }
   .cta { display: flex; flex-wrap: wrap; gap: 14px; margin: 40px 0 80px; }
-  .contact .btn { background: #ffffff; color: var(--fill); border-color: #ffffff; }
-  .contact .btn:hover { background: #0d1117; color: #ffffff; border-color: #0d1117; }
+  .contact .btn { --btn-bg: #ffffff; --btn-line: #ffffff; --btn-fg: var(--fill); }
+  .contact .btn:hover { --btn-bg: #0d1117; --btn-line: #0d1117; --btn-fg: #ffffff; }
   .contact :focus-visible { outline-color: #ffffff; }
   .foot { display: flex; justify-content: space-between; font-size: 15px; border-top: 2px solid rgba(255,255,255,.7); padding-top: 18px; gap: 16px; flex-wrap: wrap; }
 
@@ -405,7 +427,7 @@
     .name .row:nth-child(2) { padding-left: 0; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .exp a::after, .btn, .case::after, .case summary::before { transition: none; }
+    .exp a::after, .btn, .btn::before, .btn::after, .car-btn::before, .car-btn::after, .case::after, .case summary::before { transition: none; }
     .progress { display: none; }
   }
 </style>
