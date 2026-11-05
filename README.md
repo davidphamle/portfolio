@@ -14,6 +14,10 @@ Open `index.html`. The colour tokens are at the top of the `<style>` block:
 | `--bone` #ecece4 | body text | 17.7:1 |
 | `--glow` #4d9bff | decoration only (3D field, accent bar) | n/a |
 
+## Light and dark mode
+
+The site follows the visitor's device setting until they press the sun/moon button in the menu, then remembers their choice. Light colours are set in `:root[data-theme="light"]`. Light-mode contrast: body text 17.5:1, grey 7.4:1, blue text 7.2:1, white on blue 5.8:1. The 3D field switches to deep blue dots in light mode.
+
 ## Animation and accessibility
 
 - **Load:** blue wipe, the name cuts in, the band sweeps across.
