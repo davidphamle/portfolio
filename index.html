@@ -234,10 +234,13 @@
   .logo {
     /* white tile so any brand logo sits cleanly on the dark card; initials until the logo file is added */
     width: 56px; height: 56px; flex: none; display: grid; place-items: center;
-    background: #ffffff; border-radius: 12px; overflow: hidden;
+    background: #ffffff; border-radius: 12px; overflow: hidden; position: relative;
     font-family: var(--display); font-weight: 900; font-size: 24px; line-height: 1; color: var(--fill);
   }
-  .logo img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+  .logo.wide { width: 112px; }
+  .logo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 7px; }
+  .logo.wide img { padding: 8px 12px; }
+  .logo:has(img) .ini { visibility: hidden; }
   .pill {
     display: inline-flex; align-items: center; min-height: 30px; padding: 4px 14px;
     border-radius: 999px; border: 1px solid rgba(140,192,255,.45);
@@ -396,7 +399,7 @@
     </div>
     <div class="track" id="case-track" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Case studies, scroll sideways">
       <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo" aria-hidden="true">AN</span><span class="pill">SPM SaaS</span><span class="when">Now</span></div>
+        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/amplify-now.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">AN</span></span><span class="pill">SPM SaaS</span><span class="when">Now</span></div>
         <h3>Amplify-now<small>Product Manager, Adelaide</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem you were brought in to solve.</dd></div>
@@ -405,7 +408,7 @@
         </dl>
       </article>
       <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo" aria-hidden="true">VE</span><span class="pill">Fuel &amp; convenience</span><span class="when">From Jan 2025</span></div>
+        <div class="case-top"><span class="logo wide" aria-hidden="true"><img src="logos/viva-energy.svg" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">VE</span></span><span class="pill">Fuel &amp; convenience</span><span class="when">From Jan 2025</span></div>
         <h3>Viva Energy Retail<small>App Product Manager, Adelaide</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
@@ -414,7 +417,7 @@
         </dl>
       </article>
       <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo" aria-hidden="true">K</span><span class="pill">Fintech</span><span class="when">Nov 2022 – Jun 2023</span></div>
+        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/kovena.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">K</span></span><span class="pill">Fintech</span><span class="when">Nov 2022 – Jun 2023</span></div>
         <h3>Kovena<small>Product Manager, Melbourne</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
@@ -423,7 +426,7 @@
         </dl>
       </article>
       <article class="case" aria-roledescription="slide">
-        <div class="case-top"><span class="logo" aria-hidden="true">KG</span><span class="pill">Edtech</span><span class="when">Apr 2019 – Sep 2021</span></div>
+        <div class="case-top"><span class="logo" aria-hidden="true"><img src="logos/kienguru.png" alt="" width="56" height="56" loading="lazy" decoding="async" onerror="this.remove()"><span class="ini">KG</span></span><span class="pill">Edtech</span><span class="when">Apr 2019 – Sep 2021</span></div>
         <h3>KienGuru<small>Product Lead, Ho Chi Minh City</small></h3>
         <dl>
           <div><dt>Problem</dt><dd class="todo">Add the problem.</dd></div>
