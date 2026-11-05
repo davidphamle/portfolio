@@ -1,18 +1,24 @@
 # davidphamle.com
 
-Personal portfolio for David Pham Le. It's a single static page (`index.html`) with GSAP scroll animations, hosted on Vercel.
+Personal portfolio for David Pham Le. It's a single static page (`index.html`) using GSAP for scroll animation and Three.js for the 3D data field in the hero. Hosted on Vercel, and every push to `main` deploys automatically.
 
 ## Edit
 
-Open `index.html`. Colours are CSS variables at the top of the file (`--signal` is the blue accent, #4d9bff).
+Open `index.html`. The colour tokens are at the top of the `<style>` block:
 
-## Accessibility
+| Token | Use | Contrast |
+|---|---|---|
+| `--fill` #1a56f0 | buttons, band, hover rows, contact (with white text) | 5.8:1, APCA Lc 83 |
+| `--blue-text` #8cc0ff | small blue text on dark | 11.1:1 on black, 9.7:1 on cards |
+| `--ash` #bdbdb5 | secondary text | 11.1:1 on black |
+| `--bone` #ecece4 | body text | 17.7:1 |
+| `--glow` #4d9bff | decoration only (3D field, accent bar) | n/a |
 
-- Checked with axe-core against WCAG 2.0/2.1 A and AA plus best practices, with 0 violations.
-- The accent passes AA contrast both as text on black (7.45:1) and as a background behind black text.
-- No motion runs on its own for more than 5 seconds. With "reduce motion" turned on, all animation is off.
-- Includes a skip link, 44px nav touch targets, and screen-reader hints on links that open a new tab.
+## Animation and accessibility
 
-## Deploy
-
-The page is deployed to the Vercel project `davidphamle`. To get automatic deploys on push, connect this repo in Vercel under Project → Settings → Git.
+- **Load:** blue wipe, the name cuts in, the band sweeps across.
+- **Hero 3D field (Three.js):** moves on load, on scroll and under the cursor, then settles to still. It never animates on its own for more than about 5 seconds (WCAG 2.2.2). It fades out behind the intro text, and pauses when it's off screen.
+- **Scroll:** progress bar, section titles, experience rows, stack lanes, education cards, and the contact letters.
+- **Mouse only:** case-card tilt with a light that follows the cursor, and magnetic buttons.
+- **Reduced motion:** all animation is turned off and the 3D field draws one still frame.
+- **Checked with axe-core** against WCAG 2.0/2.1 A and AA plus best practices, with 0 violations. Also includes a skip link, 44px+ tap targets and screen-reader hints on links that open a new tab.
