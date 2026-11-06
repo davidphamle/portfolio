@@ -747,14 +747,21 @@
   const btn = document.querySelector(".band-toggle");
   if (!band || !track || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  // Repeat the phrase set until the track is wider than the band plus one set, for a seamless loop.
+  // Repeat the phrase set until the track covers the band plus two sets, for a seamless loop.
+  // Re-measured whenever the web font finishes loading or anything changes size: the fallback
+  // font is ~40% wider, so measuring once left too few copies and the text ran out on wide screens.
   const setLen = 8, base = [...track.children].slice(0, setLen);
-  let copyW = 0;
+  let copyW = 1;
   function build() {
-    copyW = track.children[setLen].offsetLeft - track.children[0].offsetLeft;
-    while (track.scrollWidth < band.clientWidth + copyW * 1.5) base.forEach((n) => track.appendChild(n.cloneNode(true)));
+    copyW = Math.max(1, track.children[setLen].offsetLeft - track.children[0].offsetLeft);
+    while (track.scrollWidth < band.clientWidth + copyW * 2) base.forEach((n) => track.appendChild(n.cloneNode(true)));
   }
   build();
+  if (document.fonts) {
+    document.fonts.ready.then(() => { build(); apply(); });
+    document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { build(); apply(); });
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => { build(); apply(); }).observe(track.children[0]);
 
   let paused = false; try { paused = localStorage.getItem("bannerPaused") === "1"; } catch (e) {}
   btn.hidden = false;
@@ -793,6 +800,7 @@
     kick();
   }, { passive: true });
   addEventListener("resize", () => { build(); apply(); });
+  if (window.ResizeObserver) new ResizeObserver(() => { build(); apply(); }).observe(band);
   document.addEventListener("visibilitychange", kick);
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; kick(); }).observe(band);
 
