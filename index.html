@@ -764,23 +764,30 @@
 </script>
 
 <script>
-// Ribbon motion. It moves with scroll, and drifts on its own after ~2.5s with no input,
-// stopping as soon as the visitor scrolls, moves the pointer or presses a key.
-// WCAG 2.2.2: the drift can be paused with the button next to it (choice remembered);
+// Ribbon motion. Drifts continuously at a gentle cruising speed and speeds up while the
+// visitor scrolls (either direction), easing back to cruising speed when scrolling stops.
+// WCAG 2.2.2: the button next to it pauses all movement (choice remembered);
 // with reduced motion on there is no movement and no button.
 (function () {
   const band = document.querySelector(".band"), track = document.querySelector(".band-track");
   const btn = document.querySelector(".band-toggle");
   if (!band || !track || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-  // Repeat the phrase set until the track is wider than the band plus one set, for a seamless loop.
+  // Repeat the phrase set until the track covers the band plus two sets, for a seamless loop.
+  // Re-measured whenever the web font finishes loading or anything changes size: the fallback
+  // font is ~40% wider, so measuring once left too few copies and the text ran out on wide screens.
   const setLen = 8, base = [...track.children].slice(0, setLen);
-  let copyW = 0;
+  let copyW = 1;
   function build() {
-    copyW = track.children[setLen].offsetLeft - track.children[0].offsetLeft;
-    while (track.scrollWidth < band.clientWidth + copyW * 1.5) base.forEach((n) => track.appendChild(n.cloneNode(true)));
+    copyW = Math.max(1, track.children[setLen].offsetLeft - track.children[0].offsetLeft);
+    while (track.scrollWidth < band.clientWidth + copyW * 2) base.forEach((n) => track.appendChild(n.cloneNode(true)));
   }
   build();
+  if (document.fonts) {
+    document.fonts.ready.then(() => { build(); apply(); });
+    document.fonts.addEventListener && document.fonts.addEventListener("loadingdone", () => { build(); apply(); });
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => { build(); apply(); }).observe(track.children[0]);
 
   let paused = false; try { paused = localStorage.getItem("bannerPaused") === "1"; } catch (e) {}
   btn.hidden = false;
@@ -793,41 +800,38 @@
   }
   btn.addEventListener("click", () => setPaused(!paused, true));
 
-  const SPEED = 45, IDLE_MS = 2500;           // px per second, idle delay
-  let drift = 0, vel = 0, last = performance.now(), lastInput = performance.now(), running = false, visible = true;
+  const CRUISE = 40;        // px per second at rest
+  const BOOST_MAX = 900;    // extra px per second at full scroll speed
+  let drift = 0, vel = 0, boost = 0, last = performance.now(), running = false, visible = true;
+  let lastY = scrollY, lastScrollT = performance.now();
 
-  function apply() {
-    const off = (drift + scrollY * 0.6) % copyW;
-    track.style.transform = `translate3d(${-off}px,0,0)`;
-  }
+  function apply() { track.style.transform = `translate3d(${-(drift % copyW)}px,0,0)`; }
   function frame(now) {
     const dt = Math.min((now - last) / 1000, .05); last = now;
-    const idle = now - lastInput > IDLE_MS;
-    const target = idle && visible && !paused && !document.hidden ? SPEED : 0;
-    vel += (target - vel) * Math.min(1, dt * 3);   // ease in and out
+    boost *= Math.pow(.06, dt);                          // scroll boost fades out in about a second
+    const active = visible && !paused && !document.hidden;
+    const target = active ? CRUISE + boost : 0;
+    vel += (target - vel) * Math.min(1, dt * 5);         // smooth speed changes
     drift += vel * dt;
     apply();
-    if (target > 0 || vel > .5) requestAnimationFrame(frame);
-    else { vel = 0; running = false; schedule(); }
-  }
-  let timer;
-  function schedule() {                         // wake the loop once the page has gone idle
-    clearTimeout(timer);
-    if (paused || !visible) return;
-    timer = setTimeout(kick, Math.max(0, IDLE_MS - (performance.now() - lastInput)) + 30);
+    if (active || vel > .5) requestAnimationFrame(frame); else { vel = 0; running = false; }
   }
   function kick() {
-    if (!running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+    if (!running && visible && !paused && !document.hidden) { running = true; last = performance.now(); requestAnimationFrame(frame); }
   }
-  function input() { lastInput = performance.now(); if (!running) schedule(); }
-  ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"].forEach((t) => addEventListener(t, input, { passive: true }));
-  addEventListener("scroll", () => { input(); apply(); }, { passive: true });
+  addEventListener("scroll", () => {
+    const now = performance.now(), dy = Math.abs(scrollY - lastY), dt = Math.max(16, now - lastScrollT) / 1000;
+    lastY = scrollY; lastScrollT = now;
+    boost = Math.min(BOOST_MAX, Math.max(boost, (dy / dt) * .6));   // faster scroll, faster ribbon
+    kick();
+  }, { passive: true });
   addEventListener("resize", () => { build(); apply(); });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { input(); } });
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) schedule(); }).observe(band);
+  if (window.ResizeObserver) new ResizeObserver(() => { build(); apply(); }).observe(band);
+  document.addEventListener("visibilitychange", kick);
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; kick(); }).observe(band);
 
   setPaused(paused, false);
-  apply(); schedule();
+  apply();
 })();
 </script>
 
