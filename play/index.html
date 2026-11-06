@@ -571,7 +571,17 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     g2.fillStyle = '#13102a'; g2.fillRect(0, 0, W, H);
     g2.fillStyle = '#0c1d55'; g2.fillRect(0, H * 0.58, W, H * 0.42);
     g2.strokeStyle = 'rgba(77,155,255,0.38)'; g2.lineWidth = 2;
-    for (var i = 0; i < 9; i++) { var y = H * 0.58 + Math.pow(i / 8, 2) * H * 0.42 + ((t * 30 * M) % 20) * (i / 8); g2.beginPath(); g2.moveTo(0, y); g2.lineTo(W, y); g2.stroke(); }
+    // Scrolling floor grid. Each line sits at depth z = (i + phase) / N and is projected with z²,
+    // so as phase goes 0 -> 1 every line moves exactly onto the next line's spot. When phase
+    // wraps back to 0 the picture is identical, so the loop is seamless (no jump or snap).
+    var N = 8, phase = (t * 0.55 * M) % 1;
+    for (var i = 0; i <= N; i++) {
+      var z = (i + phase) / N; if (z > 1) continue;
+      var y = H * 0.58 + z * z * H * 0.42;
+      g2.globalAlpha = Math.min(1, z * N) * (0.35 + 0.65 * z); // emerge from 0 at the horizon, no pop-in
+      g2.beginPath(); g2.moveTo(0, y); g2.lineTo(W, y); g2.stroke();
+    }
+    g2.globalAlpha = 1;
     for (var v = -10; v <= 10; v++) { g2.beginPath(); g2.moveTo(W / 2 + v * 30, H * 0.58); g2.lineTo(W / 2 + v * 160, H); g2.stroke(); }
     g2.fillStyle = 'rgba(26,86,240,0.9)'; g2.beginPath(); g2.arc(W * 0.82, H * 0.58, 76, Math.PI, 0); g2.fill();
     g2.fillStyle = '#13102a'; for (var b = 0; b < 4; b++) g2.fillRect(W * 0.82 - 78, H * 0.58 - 16 - b * 17, 156, 4 + b);
