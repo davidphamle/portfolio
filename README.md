@@ -22,7 +22,7 @@ The site follows the visitor's device setting until they press the sun/moon butt
 
 - **Load:** blue wipe, the name cuts in, the band sweeps across.
 - **Hero 3D field (Three.js):** moves on load, on scroll and under the cursor, then settles to still. It never animates on its own for more than about 5 seconds (WCAG 2.2.2). It fades out behind the intro text, and pauses when it's off screen.
-- **Ribbon:** drifts all the time at a gentle cruising speed, and speeds up while the visitor scrolls (either direction), easing back when scrolling stops. The pause button beside it stops all movement, and the choice is remembered (WCAG 2.2.2).
+- **Ribbon:** drifts all the time at a gentle cruising speed, and speeds up while the visitor scrolls (either direction), easing back when scrolling stops. The pause button beside it stops all movement for the rest of the visit (WCAG 2.2.2).
 - **Scroll:** progress bar, section titles, experience rows, stack lanes, education cards, and the contact letters.
 - **Mouse only:** case-card tilt with a light that follows the cursor, and magnetic buttons.
 - **Reduced motion:** all animation is turned off and the 3D field draws one still frame.

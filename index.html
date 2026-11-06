@@ -766,7 +766,7 @@
 <script>
 // Ribbon motion. Drifts continuously at a gentle cruising speed and speeds up while the
 // visitor scrolls (either direction), easing back to cruising speed when scrolling stops.
-// WCAG 2.2.2: the button next to it pauses all movement (choice remembered);
+// WCAG 2.2.2: the button next to it pauses all movement (for the rest of the visit);
 // with reduced motion on there is no movement and no button.
 (function () {
   const band = document.querySelector(".band"), track = document.querySelector(".band-track");
@@ -789,13 +789,15 @@
   }
   if (window.ResizeObserver) new ResizeObserver(() => { build(); apply(); }).observe(track.children[0]);
 
-  let paused = false; try { paused = localStorage.getItem("bannerPaused") === "1"; } catch (e) {}
+  // The pause choice lasts for this visit only (sessionStorage), so an accidental click
+  // doesn't keep the ribbon frozen on every future visit.
+  let paused = false; try { localStorage.removeItem("bannerPaused"); paused = sessionStorage.getItem("bannerPaused") === "1"; } catch (e) {}
   btn.hidden = false;
   function setPaused(p, save) {
     paused = p;
     btn.dataset.paused = String(p);
     btn.setAttribute("aria-label", p ? "Play the moving banner" : "Pause the moving banner");
-    if (save) { try { localStorage.setItem("bannerPaused", p ? "1" : "0"); } catch (e) {} }
+    if (save) { try { sessionStorage.setItem("bannerPaused", p ? "1" : "0"); } catch (e) {} }
     kick();
   }
   btn.addEventListener("click", () => setPaused(!paused, true));
