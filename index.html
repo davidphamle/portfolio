@@ -617,7 +617,7 @@
       tl.play();
     });
 
-    // Name letters spring when the pointer passes over them (tap on touch screens).
+    // Name letters drift away from the pointer, then glide back when it moves off.
     // Letters are split into spans; the h1 keeps its aria-label so screen readers read the name.
     const letters = [];
     document.querySelectorAll(".name .row > span").forEach((word) => {
@@ -628,24 +628,36 @@
         word.appendChild(l); letters.push(l);
       });
     });
-    function spring(el, power) {
-      if (!document.querySelector(".name").classList.contains("springy")) return;  // wait for the intro
-      gsap.killTweensOf(el);
-      // Lift and stretch, then fall back without dipping into the line below (no y overshoot),
-      // while the stretch/squash wobbles on an elastic spring.
-      gsap.timeline()
-        .to(el, { yPercent: -16 * power, scaleY: 1 + .14 * power, scaleX: 1 - .06 * power, duration: .14, ease: "power2.out" })
-        .to(el, { yPercent: 0, duration: .5, ease: "power3.out" })
-        .to(el, { scaleY: 1, scaleX: 1, duration: 1.1, ease: "elastic.out(1.2, 0.25)" }, "<");
+    const nameEl = document.querySelector(".name");
+    const movers = letters.map((el) => ({
+      el,
+      x: gsap.quickTo(el, "x", { duration: .7, ease: "power3.out" }),
+      y: gsap.quickTo(el, "y", { duration: .7, ease: "power3.out" }),
+      r: gsap.quickTo(el, "rotation", { duration: .9, ease: "power3.out" }),
+    }));
+    function repel(px, py) {
+      if (!nameEl.classList.contains("springy")) return;           // wait for the intro to finish
+      const size = parseFloat(getComputedStyle(nameEl).fontSize);
+      const radius = size * 1.15, maxPush = size * 0.18;          // scales with the type size
+      movers.forEach((m) => {
+        const r = m.el.getBoundingClientRect();
+        // rest centre = current centre minus the offset already applied
+        const cx = r.left + r.width / 2 - gsap.getProperty(m.el, "x");
+        const cy = r.top + r.height / 2 - gsap.getProperty(m.el, "y");
+        const dx = cx - px, dy = cy - py, d = Math.hypot(dx, dy) || 1;
+        if (d < radius) {
+          const f = Math.pow(1 - d / radius, 1.25) * maxPush;     // stronger the closer the cursor
+          m.x(dx / d * f); m.y(dy / d * f); m.r((dx / d) * f * 0.05);
+        } else { m.x(0); m.y(0); m.r(0); }
+      });
     }
-    function hit(el) {
-      const i = letters.indexOf(el); spring(el, 1);
-      [letters[i - 1], letters[i + 1]].forEach((n) => n && n.parentNode === el.parentNode && spring(n, .45));
-    }
-    letters.forEach((l) => {
-      l.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") hit(l); });
-      l.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") hit(l); });
-    });
+    function settle() { movers.forEach((m) => { m.x(0); m.y(0); m.r(0); }); }
+    const zone = document.querySelector(".hero-main");
+    zone.addEventListener("pointermove", (e) => repel(e.clientX, e.clientY));
+    zone.addEventListener("pointerleave", settle);
+    addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") settle(); });
+    addEventListener("pointercancel", settle);
+    addEventListener("scroll", settle, { passive: true });
 
     // Reading progress bar.
     gsap.to(".progress", { scaleX: 1, ease: "none", scrollTrigger: { start: 0, end: "max", scrub: .3 } });
