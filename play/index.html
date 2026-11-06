@@ -1,0 +1,1005 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Play mode — David Pham Le</title>
+<meta name="description" content="Browse David Pham Le's projects and career on a 3D retro game console.">
+<meta property="og:title" content="Play mode — David Pham Le">
+<meta property="og:description" content="David Pham Le's portfolio as a playable 8-bit console.">
+<meta property="og:url" content="https://davidphamle.com/play/">
+<link rel="canonical" href="https://davidphamle.com/play/">
+<meta name="theme-color" content="#0f0c18">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;900&family=Archivo:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: desktop is a late-night desk scene (CRT on a stand, 8-bit console with a top-loading slot, corded controller, cartridge rack); phones get a vertical pocket handheld. HUD chips pin to the corners. Single dark look by choice. */
+:root {
+  --ink: #0f0c18;
+  --panel: rgba(18, 15, 30, 0.86);
+  --line: rgba(236, 236, 228, 0.16);
+  --fg: #ecece4;
+  --muted: #bdbdb5;
+  --accent: #8cc0ff;
+  --fill: #1a56f0;
+  --display: "Big Shoulders Display", "Arial Narrow", system-ui, sans-serif;
+  --body: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { margin: 0; background: var(--ink); color: var(--fg); font-family: var(--body); overflow: hidden; -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+#world { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; outline: none; }
+.hud { position: fixed; z-index: 5; }
+.top {
+  top: 0; left: 0; right: 0;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; pointer-events: none;
+}
+.top > * { pointer-events: auto; }
+.chip { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(8px); }
+.brand { display: flex; flex-direction: column; gap: 2px; padding: 8px 14px; text-decoration: none; color: var(--fg); }
+.brand b { font: 900 22px/1 var(--display); text-transform: uppercase; letter-spacing: 0.01em; }
+.brand span { font: 500 11px var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.tools { display: flex; align-items: center; gap: 6px; padding: 6px; flex-wrap: wrap; }
+.tools .lbl { font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 0 4px 0 8px; }
+.swatch { width: 44px; height: 44px; border-radius: 12px; border: 2px solid var(--line); cursor: pointer; padding: 0; display: grid; place-items: center; background: transparent; }
+.swatch i { display: block; width: 24px; height: 24px; border-radius: 7px; background: var(--c); box-shadow: inset 0 -5px 0 var(--c2); }
+.swatch[aria-pressed="true"] { border-color: var(--accent); }
+.btn { font: 500 13px var(--mono); color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 12px; min-height: 44px; padding: 0 14px; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; box-sizing: border-box; }
+.btn:hover, .swatch:hover { border-color: var(--accent); }
+.btn[aria-pressed="true"] { background: var(--fg); color: var(--ink); border-color: transparent; }
+.btn.primary { background: var(--fill); border-color: transparent; color: #fff; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.legend {
+  left: max(16px, env(safe-area-inset-left, 0px));
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  max-width: min(300px, calc(100% - 32px)); box-sizing: border-box;
+  padding: 12px 14px; display: flex; flex-direction: column; gap: 4px;
+  font: 400 12px/1.5 var(--mono); color: var(--muted);
+}
+.legend strong { color: var(--fg); font-weight: 600; }
+kbd { font: 600 11px var(--mono); color: var(--fg); padding: 0 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; }
+.toast { left: 50%; transform: translateX(-50%); top: calc(84px + env(safe-area-inset-top, 0px)); padding: 12px 16px; border-radius: 12px; background: var(--fg); color: var(--ink); font: 500 13px var(--mono); max-width: calc(100% - 32px); box-sizing: border-box; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.fallback { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); font-size: 18px; }
+body.pocket .legend, body.pocket .tools .lbl, body.pocket .brand span, body.pocket #sound { display: none; }
+body.pocket .brand { padding: 8px 12px; }
+body.pocket .brand b { font-size: 19px; }
+</style>
+</head>
+<body>
+<canvas id="world" tabindex="0" aria-label="A 3D retro game console. Use the controller buttons, click the TV screen, drag cartridges into the console, or use the keyboard to browse David's work."></canvas>
+
+<div class="hud top">
+  <a class="chip brand" href="/" id="home-link"><b>David Pham Le</b><span>Play mode</span></a>
+  <div class="chip tools">
+    <span class="lbl">Finish</span>
+    <button class="swatch" data-shell="classic" aria-pressed="true" aria-label="Classic grey finish" style="--c:#cfcbc4;--c2:#3a3740"><i></i></button>
+    <button class="swatch" data-shell="midnight" aria-pressed="false" aria-label="Midnight finish" style="--c:#2c2a38;--c2:#14131b"><i></i></button>
+    <button class="swatch" data-shell="blue" aria-pressed="false" aria-label="Signal blue finish" style="--c:#1a56f0;--c2:#0c2a78"><i></i></button>
+    <button class="btn" id="sound" aria-pressed="false">Sound off</button>
+    <a class="btn primary" id="classic" href="/">Classic view</a>
+  </div>
+</div>
+
+<div class="hud chip legend">
+  <span><strong>Drag a cartridge</strong> into the console, or drag it out to eject</span>
+  <span>Press the controller or click the TV</span>
+  <span><kbd>↑</kbd><kbd>↓</kbd> choose · <kbd>←</kbd><kbd>→</kbd> tab</span>
+  <span><kbd>Enter</kbd> A · <kbd>Esc</kbd> B · <kbd>Space</kbd> start</span>
+  <span>Drag the room to look · scroll to zoom</span>
+</div>
+<div class="hud toast" id="toast" role="status" hidden></div>
+
+<section class="sr-only" aria-label="What is on this console">
+  <h2>Projects</h2>
+  <p>Quiet Tab: a Chrome extension that re-skins LinkedIn job search as a calm, spreadsheet-style tool. Skill Forge: custom Claude skills. davidphamle.com: this portfolio.</p>
+  <h2>Career</h2>
+  <ul>
+    <li>AI Product Manager, Amplify-now, Sep 2026 to now</li>
+    <li>App Product Manager, Viva Energy Retail, Jan 2025 to Aug 2026</li>
+    <li>Product Manager, Hamlet Co., contract, Aug 2024 to Nov 2024</li>
+    <li>Product Manager, Leading Direction, part-time contract, Oct 2023 to Dec 2024</li>
+    <li>Product Manager, Kovena, contract, Dec 2022 to Feb 2023</li>
+    <li>Product Manager, MeeOpp, contract, Nov 2022 to Jan 2023</li>
+    <li>Product Owner, Xplor Education, May 2022 to Oct 2022</li>
+    <li>Product Manager, Credshare, Sep 2021 to May 2022</li>
+    <li>Product Lead, KienGuru, Apr 2019 to Sep 2021</li>
+  </ul>
+  <p><a href="/">Open the classic portfolio</a></p>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify-now.png", "viva-energy.svg": "/logos/viva-energy.svg", "kovena.png": "/logos/kovena.png", "kienguru.png": "/logos/kienguru.png"};
+(function () {
+  if (typeof THREE === 'undefined') {
+    var f = document.createElement('div'); f.className = 'fallback';
+    f.textContent = 'The 3D console could not load in this browser. Use Classic view instead.';
+    document.body.appendChild(f); return;
+  }
+  var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var M = REDUCED ? 0.2 : 1;
+  var SITE = window.PLAY_SITE === true;
+  var LOGOS = window.PLAY_LOGOS || {};
+
+  /* ================= Content ================= */
+  var CATS = [
+    { name: 'Projects', items: [
+      { title: 'Quiet Tab', kind: 'Chrome extension', status: 'In progress', color: '#3fd0ff', sides: 4,
+        desc: 'Re-skins LinkedIn job search as a calm, spreadsheet-style tool, so the hunt feels like working a list instead of scrolling a feed.',
+        listTitle: 'OBJECTIVES', checks: [['Figma design system', 1], ['PRD v0.2', 1], ['Resolve four blocking questions', 0], ['Ship to the Chrome Web Store', 0]],
+        tags: ['Chrome extension', 'Figma', 'Product spec'], soon: true },
+      { title: 'Skill Forge', kind: 'AI workflow tooling', status: '4 shipped', color: '#ffb02e', sides: 6,
+        desc: 'Custom Claude skills that augment my own workflow, built on a profile-based architecture so each one works for any product.',
+        listTitle: 'SHIPPED', checks: [['figma-design-partner', 1], ['prd-to-design-brief', 1], ['powerbi-dax-expert', 1], ['immiaccount-review', 1]],
+        tags: ['Claude', 'Skill design', 'Automation'], soon: true },
+      { title: 'davidphamle.com', kind: 'Portfolio', status: 'Live', color: '#4d9bff', sides: 5,
+        desc: 'The site you are on: one static page with GSAP scroll animation and a Three.js hero, hosted on Vercel, and now this play mode.',
+        listTitle: 'OBJECTIVES', checks: [['Code in GitHub', 1], ['Deploy on Vercel', 1], ['Play mode', 1], ['More case studies', 0]],
+        tags: ['GSAP', 'Three.js', 'Vercel'], href: '/' },
+      { title: '??? Next build', kind: 'Locked', status: 'Coming soon', color: '#9a94b8', sides: 3,
+        desc: 'A new project is in the works. This cartridge unlocks when it ships.',
+        listTitle: 'OBJECTIVES', checks: [['Next project', 0]], tags: ['Coming soon'], soon: true }
+    ]},
+    { name: 'Career', items: [
+      { title: 'Amplify-now', kind: 'AI Product Manager', status: 'Sep 2026 – now', color: '#4d9bff', logo: 'amplify-now.png', ini: 'AN',
+        desc: 'Leading a Scrum team on enterprise strategy-execution software, with AI built into specs and design.',
+        listTitle: 'HIGHLIGHTS', checks: [['Run the Scrum ceremonies and backlog', 1], ['Write product specs and drive design with AI tools', 1], ['Analyse data across connectors to set priorities', 1]],
+        tags: ['SPM SaaS', 'Adelaide'], href: 'https://amplify-now.com/' },
+      { title: 'Viva Energy Retail', kind: 'App Product Manager', status: 'Jan 2025 – Aug 2026', color: '#00a7e1', logo: 'viva-energy.svg', ini: 'VE', wide: true,
+        desc: '1,000+ fuel transactions a day on the new SPS App I helped launch for the OTR app.',
+        listTitle: 'HIGHLIGHTS', checks: [['Owned strategy, data and delivery across fuel, carwash and pre-order', 1], ['Flybuys in-app integration: close to a million in app sales', 1], ['Back-end rebuild and unattended fuel purchasing', 1], ['Power BI DAX and Snowflake SQL for segmentation', 1]],
+        tags: ['Fuel & convenience', 'Adelaide'], href: 'https://www.vivaenergy.com.au/' },
+      { title: 'Hamlet Co.', kind: 'Product Manager', status: 'Aug 2024 – Nov 2024', color: '#ff9f5a', ini: 'HC',
+        desc: 'Product Manager on contract with a Sydney-based team, working remotely.',
+        checks: [], tags: ['Contract', 'Sydney, remote'], href: 'https://hamletco.space/' },
+      { title: 'Leading Direction', kind: 'Product Manager', status: 'Oct 2023 – Dec 2024', color: '#62e08a', ini: 'LD',
+        desc: 'Product Manager on a part-time contract with a Sunshine Coast team, working remotely.',
+        checks: [], tags: ['Part-time contract', 'Sunshine Coast, remote'], href: 'https://leadingdirections.io/' },
+      { title: 'Kovena', kind: 'Product Manager', status: 'Dec 2022 – Feb 2023', color: '#3fa2ff', logo: 'kovena.png', ini: 'K',
+        desc: 'v2 revamp of a payments platform for accommodation providers across Asia and Oceania.',
+        listTitle: 'HIGHLIGHTS', checks: [['Managed end-to-end Agile delivery', 1], ['Owned the product roadmap', 1]],
+        tags: ['Fintech', 'Contract', 'Melbourne, remote'], href: 'https://kovena.com/' },
+      { title: 'MeeOpp', kind: 'Product Manager', status: 'Nov 2022 – Jan 2023', color: '#ff6b9a', ini: 'MO',
+        desc: 'Product Manager on contract with a Hong Kong-based team, working remotely.',
+        checks: [], tags: ['Contract', 'Hong Kong, remote'], href: 'https://meeopp.com/' },
+      { title: 'Xplor Education', kind: 'Product Owner', status: 'May 2022 – Oct 2022', color: '#b98cff', ini: 'XE',
+        desc: 'Product Owner with the Melbourne team, working remotely.',
+        checks: [], tags: ['Edtech', 'Melbourne, remote'], href: 'https://www.xplortechnologies.com/' },
+      { title: 'Credshare', kind: 'Product Manager', status: 'Sep 2021 – May 2022', color: '#ffd166', ini: 'CS',
+        desc: 'Product Manager with the Perth team, working remotely.',
+        checks: [], tags: ['Perth, remote'], href: 'https://www.credshare.com/' },
+      { title: 'KienGuru', kind: 'Product Lead', status: 'Apr 2019 – Sep 2021', color: '#ff6b6b', logo: 'kienguru.png', ini: 'KG',
+        desc: '1M downloads and 800,000 sign-ups for a Ruangguru-backed learning app.',
+        listTitle: 'HIGHLIGHTS', checks: [['Directed product strategy for the Vietnamese arm of Ruangguru (US$830M valuation)', 1], ['Ran regular user research and testing', 1], ['Aligned UX, CX and release priorities with tech leadership', 1]],
+        tags: ['Edtech', 'Ho Chi Minh City'], href: 'https://kienguru.vn/' }
+    ]},
+    { name: 'About', items: [
+      { title: 'David Pham Le', kind: 'Player profile', status: '7 years · 9 roles', color: '#8cc0ff', sides: 8,
+        desc: 'AI and data product manager in Adelaide, currently at Amplify-now. Master of Computer Science from the University of Adelaide, and self-taught in product design.',
+        checks: [], tags: ['Product management', 'Data analytics', 'Product design', 'AI in the loop'], href: '/' },
+      { title: 'Tech stack', kind: 'Equipment', status: 'Daily drivers', color: '#8cc0ff', sides: 6,
+        desc: 'The tools I use to plan, design, analyse and ship.',
+        checks: [], tags: ['Figma', 'Power BI', 'Claude', 'Jira', 'Cursor', 'SQL', 'Snowflake', 'Braze', 'Confluence', 'Gemini'], href: '/#stack' },
+      { title: 'Three countries', kind: 'World map', status: '3 countries', color: '#8cc0ff', sides: 4,
+        desc: 'Teams in Australia, Vietnam and Hong Kong, in the office and remote.',
+        checks: [], tags: ['Adelaide', 'Ho Chi Minh City', 'Remote'], href: '/#experience' }
+    ]},
+    { name: 'Contact', items: [
+      { title: 'Email me', kind: 'davidphamle@gmail.com', status: 'Open to chat', color: '#62e08a', sides: 3,
+        desc: 'Working on something interesting? Send me an email at davidphamle@gmail.com.',
+        checks: [], tags: ['davidphamle@gmail.com'], href: 'mailto:davidphamle@gmail.com' },
+      { title: 'LinkedIn', kind: 'in/davidphamle', status: 'Connect', color: '#4d9bff', sides: 4,
+        desc: 'Career history and recommendations.',
+        checks: [], tags: ['linkedin.com/in/davidphamle'], href: 'https://www.linkedin.com/in/davidphamle/' },
+      { title: 'Download CV', kind: 'PDF', status: 'Google Drive', color: '#ffd166', sides: 5,
+        desc: 'The full CV, ready to download.',
+        checks: [], tags: ['CV'], href: 'https://drive.google.com/file/d/1v0ZzTSa_YepAs6BYjoaAf6q4SUH710pT/view?usp=download' },
+      { title: 'Classic portfolio', kind: 'Exit play mode', status: 'Any time', color: '#ecece4', sides: 8,
+        desc: 'Prefer scrolling to button mashing? Go back to the regular site.',
+        checks: [], tags: ['davidphamle.com'], href: '/' }
+    ]}
+  ];
+
+  /* logos */
+  var LOGO_IMG = {};
+  Object.keys(LOGOS).forEach(function (k) { var im = new Image(); im.onload = function () { im.ready = true; }; im.src = LOGOS[k]; LOGO_IMG[k] = im; });
+
+  /* ================= HUD ================= */
+  var toastEl = document.getElementById('toast'), toastTimer;
+  function toast(m) { toastEl.textContent = m; toastEl.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2800); }
+  if (!SITE) {
+    ['classic', 'home-link'].forEach(function (id) {
+      document.getElementById(id).addEventListener('click', function (e) { e.preventDefault(); toast('On davidphamle.com this goes back to the regular portfolio.'); });
+    });
+  }
+  var soundOn = false, actx = null, soundBtn = document.getElementById('sound');
+  function setSound(on) {
+    soundOn = on; soundBtn.setAttribute('aria-pressed', String(on)); soundBtn.textContent = on ? 'Sound on' : 'Sound off';
+    if (on && !actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+    if (on) beep(880, 0.05);
+  }
+  soundBtn.addEventListener('click', function () { setSound(!soundOn); });
+  function beep(freq, len) {
+    if (!soundOn || !actx) return;
+    try {
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'square'; o.frequency.value = freq; g.gain.value = 0.035;
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + len);
+      o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + len);
+    } catch (e) {}
+  }
+  function openItem(it) {
+    if (!it.href) { toast(it.soon ? it.title + ': case study coming soon.' : 'Nothing to open here yet.'); return; }
+    if (!SITE) { toast('On davidphamle.com this opens ' + it.href.replace(/^mailto:/, '')); return; }
+    if (/^https?:/.test(it.href)) { var w = window.open(it.href, '_blank', 'noopener'); if (!w) location.href = it.href; }
+    else location.href = it.href;
+  }
+
+  /* ================= Renderer ================= */
+  var canvas = document.getElementById('world');
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  var DISPLAY = '"Big Shoulders Display", "Arial Narrow", sans-serif', BODY = '"Archivo", system-ui, sans-serif', MONO = '"IBM Plex Mono", monospace';
+
+  function mat(c, o) { var p = { color: c, roughness: 0.6, metalness: 0 }; if (o) for (var k in o) p[k] = o[k]; return new THREE.MeshStandardMaterial(p); }
+  function mesh(geo, m, x, y, z, parent) { var me = new THREE.Mesh(geo, m); me.position.set(x || 0, y || 0, z || 0); me.castShadow = true; me.receiveShadow = true; if (parent) parent.add(me); return me; }
+  function rrShape(w, h, r, rBR) {
+    var s = new THREE.Shape(), x = -w / 2, y = -h / 2, br = rBR == null ? r : rBR;
+    s.moveTo(x + r, y); s.lineTo(x + w - br, y); s.absarc(x + w - br, y + br, br, -Math.PI / 2, 0, false);
+    s.lineTo(x + w, y + h - r); s.absarc(x + w - r, y + h - r, r, 0, Math.PI / 2, false);
+    s.lineTo(x + r, y + h); s.absarc(x + r, y + h - r, r, Math.PI / 2, Math.PI, false);
+    s.lineTo(x, y + r); s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+    return s;
+  }
+  function roundedBox(w, h, d, r, bevel) {
+    var g = new THREE.ExtrudeGeometry(rrShape(w - 2 * bevel, h - 2 * bevel, Math.max(0.01, r - bevel)), { depth: d - 2 * bevel, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelSegments: 4, curveSegments: 12 });
+    g.translate(0, 0, -(d - 2 * bevel) / 2); return g;
+  }
+  function textTex(text, opts) {
+    opts = opts || {};
+    var c = document.createElement('canvas'); c.width = opts.w || 512; c.height = opts.h || 96;
+    var x = c.getContext('2d');
+    x.fillStyle = opts.color || '#ecece4';
+    x.font = (opts.weight || '700') + ' ' + (opts.size || Math.round(c.height * 0.6)) + 'px ' + (opts.font || MONO);
+    x.textAlign = opts.align || 'center'; x.textBaseline = 'middle';
+    x.fillText(text, opts.align === 'left' ? 8 : c.width / 2, c.height / 2 + 2);
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t;
+  }
+  function decal(text, w, h, opts) { return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: textTex(text, opts), transparent: true, depthWrite: false })); }
+
+  /* ================= Screens ================= */
+  function makeScreen(w, h, compact, crt) {
+    var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
+    return { cv: cv, ctx: cv.getContext('2d'), tex: tex, W: w, H: h, compact: compact, crt: crt, hits: [] };
+  }
+  var deskScreen = makeScreen(960, 720, false, true);
+  var pocketScreen = makeScreen(800, 720, true, false);
+
+  function addButton(rig, m, action, axis, depth) {
+    m.userData.action = action; m.userData.axis = axis || 'z'; m.userData.rest = m.position[m.userData.axis]; m.userData.depth = depth || 0.1;
+    rig.buttons.push({ mesh: m, action: action, t: 0 });
+    return m;
+  }
+
+  /* ================= Cartridge label art ================= */
+  function cartLabel(it) {
+    var c = document.createElement('canvas'); c.width = 480; c.height = 320;
+    var x = c.getContext('2d');
+    x.fillStyle = '#ecece4'; x.fillRect(0, 0, 480, 320);
+    x.fillStyle = it.color; x.fillRect(0, 0, 480, 150);
+    // pixel horizon
+    x.fillStyle = 'rgba(15,12,24,0.25)'; for (var i = 0; i < 6; i++) x.fillRect(0, 118 + i * 5, 480, 2);
+    x.fillStyle = '#0f0c18'; x.textBaseline = 'alphabetic';
+    var t = it.title.toUpperCase(), fs = 92; x.font = '900 ' + fs + 'px ' + DISPLAY;
+    while (x.measureText(t).width > 440 && fs > 40) { fs -= 4; x.font = '900 ' + fs + 'px ' + DISPLAY; }
+    x.fillText(t, 22, 104);
+    x.font = '700 24px ' + MONO; x.fillStyle = '#3a3740'; x.fillText(it.kind.toUpperCase(), 22, 200);
+    x.font = '600 20px ' + MONO; x.fillStyle = '#6a6672'; x.fillText(it.status.toUpperCase(), 22, 236);
+    x.fillStyle = '#0f0c18'; x.fillRect(22, 262, 120, 34); x.fillStyle = '#ecece4'; x.font = '900 28px ' + DISPLAY; x.fillText('DPL·8', 34, 289);
+    var tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding; tx.anisotropy = 8; return tx;
+  }
+
+  /* ================= Rig A: desk ================= */
+  function makeDesk() {
+    var rig = { buttons: [], picks: [], screenObj: deskScreen, carts: [] };
+    var scene = new THREE.Scene(); rig.scene = scene;
+    scene.background = new THREE.Color('#120e1f');
+    scene.fog = new THREE.Fog('#120e1f', 34, 70);
+    var cam = new THREE.PerspectiveCamera(44, 1, 0.1, 200); rig.camera = cam;
+
+    scene.add(new THREE.HemisphereLight('#c9c2ff', '#2a1a20', 0.45));
+    var lamp = new THREE.SpotLight('#ffd9b0', 1.25, 70, 0.62, 0.6, 1.1); lamp.position.set(-13, 19, 12); lamp.target.position.set(0, 2, -2);
+    lamp.castShadow = true; lamp.shadow.mapSize.set(2048, 2048); lamp.shadow.bias = -0.0004; scene.add(lamp); scene.add(lamp.target);
+    var tvGlow = new THREE.PointLight('#8fb0ff', 1.4, 24, 1.6); tvGlow.position.set(-1.3, 8.0, -2.6); scene.add(tvGlow);
+    // backlight: real lights behind the TV washing the wall
+    var back1 = new THREE.PointLight('#4f63ff', 3.2, 18, 1.4); back1.position.set(-2.5, 8.5, -12.1); scene.add(back1);
+    var back2 = new THREE.PointLight('#ff4f8a', 1.1, 14, 1.5); back2.position.set(4.5, 5.0, -12.1); scene.add(back2);
+    var rim = new THREE.PointLight('#ff7b6b', 0.7, 40, 1.4); rim.position.set(15, 7, 2); scene.add(rim);
+
+    var wall = new THREE.Mesh(new THREE.PlaneGeometry(100, 46), mat('#2a2340', { roughness: 0.95 })); wall.position.set(0, 16, -13); wall.receiveShadow = true; scene.add(wall);
+    var skirt = mesh(new THREE.BoxGeometry(100, 0.5, 0.3), mat('#1a1528'), 0, 0.25, -12.85, scene); skirt.castShadow = false;
+    var table = mesh(new THREE.BoxGeometry(44, 0.8, 26), mat('#5b3b2a', { roughness: 0.75 }), 0, -0.4, 0, scene); table.castShadow = false;
+    for (var p = -21; p <= 21; p += 3) mesh(new THREE.BoxGeometry(0.05, 0.01, 26), mat('#4a2f21'), p, 0.005, 0, scene).castShadow = false;
+
+    var shell = mat('#cfcbc4', { roughness: 0.55 }), shellDark = mat('#3a3740', { roughness: 0.6 }), black = mat('#141318', { roughness: 0.5 });
+    rig.shell = shell; rig.shellDark = shellDark;
+
+    /* stand */
+    var stand = new THREE.Group(); stand.position.set(-0.4, 0, -8.2); scene.add(stand);
+    mesh(new THREE.BoxGeometry(14.6, 0.35, 6.4), mat('#3b2a22', { roughness: 0.7 }), 0, 2.85, 0, stand);
+    mesh(new THREE.BoxGeometry(14.2, 2.7, 6.0), mat('#2a1e19', { roughness: 0.8 }), 0, 1.35, 0, stand);
+    mesh(new THREE.BoxGeometry(13.4, 1.9, 0.05), mat('#1b1411'), 0, 1.35, 3.01, stand);
+
+    /* TV */
+    var tv = new THREE.Group(); tv.position.set(-0.4, 3.02, -8.0); scene.add(tv);
+    var tw = 13.4, th = 9.8, td = 7.0, tvFront = td / 2;
+    mesh(roundedBox(tw, th, td, 0.9, 0.3), mat('#2d2a31', { roughness: 0.45 }), 0, th / 2, 0, tv);
+    mesh(new THREE.ShapeGeometry(rrShape(tw - 0.9, th - 0.9, 0.6), 8), mat('#3b3740', { roughness: 0.5 }), 0, th / 2, tvFront + 0.01, tv);
+    mesh(new THREE.ShapeGeometry(rrShape(9.6, 7.5, 0.7), 8), mat('#0c0b10', { roughness: 0.3 }), -1.3, th / 2 + 0.05, tvFront + 0.02, tv);
+    var sGeo = new THREE.PlaneGeometry(8.8, 6.6, 24, 18), pos = sGeo.attributes.position;
+    for (var i = 0; i < pos.count; i++) { var x0 = pos.getX(i) / 4.4, y0 = pos.getY(i) / 3.3; pos.setZ(i, 0.32 * (1 - (x0 * x0 + y0 * y0) / 2)); }
+    sGeo.computeVertexNormals();
+    var scr = new THREE.Mesh(sGeo, new THREE.MeshBasicMaterial({ map: deskScreen.tex, toneMapped: false }));
+    scr.position.set(-1.3, th / 2 + 0.05, tvFront + 0.03); scr.userData.screen = true; tv.add(scr); rig.screenMesh = scr;
+    var glass = new THREE.Mesh(sGeo, new THREE.MeshPhysicalMaterial({ color: '#ffffff', transparent: true, opacity: 0.06, roughness: 0.05, clearcoat: 1, depthWrite: false }));
+    glass.position.copy(scr.position); glass.position.z += 0.02; tv.add(glass);
+    var knobMat = mat('#c8c3ba', { roughness: 0.4, metalness: 0.2 });
+    var k1 = mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.5, 24), knobMat, 4.9, th / 2 + 2.4, tvFront + 0.25, tv); k1.rotation.x = Math.PI / 2; addButton(rig, k1, 'R', 'z', 0.08);
+    mesh(new THREE.BoxGeometry(0.12, 0.7, 0.04), mat('#2d2a31'), 0, 0.26, 0, k1).rotation.x = Math.PI / 2;
+    var k2 = mesh(new THREE.CylinderGeometry(0.42, 0.46, 0.45, 24), knobMat, 4.9, th / 2 + 0.7, tvFront + 0.22, tv); k2.rotation.x = Math.PI / 2; addButton(rig, k2, 'sound', 'z', 0.08);
+    var kl1 = decal('CHANNEL', 1.6, 0.22, { size: 48, color: '#bdbdb5' }); kl1.position.set(4.9, th / 2 + 1.55, tvFront + 0.025); tv.add(kl1);
+    var kl2 = decal('VOLUME', 1.6, 0.22, { size: 48, color: '#bdbdb5' }); kl2.position.set(4.9, th / 2 + 0.05, tvFront + 0.025); tv.add(kl2);
+    for (var sp = 0; sp < 7; sp++) mesh(new THREE.BoxGeometry(1.4, 0.1, 0.03), mat('#151419'), 4.9, th / 2 - 1.0 - sp * 0.32, tvFront + 0.025, tv);
+    var tvl = decal('DPL VISION', 2.2, 0.3, { size: 60, color: '#c8c3ba', font: DISPLAY, weight: '900' }); tvl.position.set(-1.3, 0.62, tvFront + 0.025); tv.add(tvl);
+    var ant = new THREE.Group(); ant.position.set(0, th + 0.1, -1); tv.add(ant);
+    mesh(new THREE.SphereGeometry(0.6, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat('#2d2a31'), 0, 0, 0, ant);
+    [-1, 1].forEach(function (s) {
+      var rod = mesh(new THREE.CylinderGeometry(0.04, 0.06, 6, 8), mat('#d7d3cc', { metalness: 0.8, roughness: 0.25 }), s * 1.4, 2.8, 0, ant); rod.rotation.z = -s * 0.5;
+      mesh(new THREE.SphereGeometry(0.1, 10, 8), mat('#d7d3cc', { metalness: 0.8, roughness: 0.25 }), s * 2.85, 5.45, 0, ant);
+    });
+
+    /* console with a top-loading slot */
+    var con = new THREE.Group(); con.position.set(0, 0, -1.4); scene.add(con);
+    var cw = 11, ch = 2.4, cd = 6.4, cf = cd / 2;
+    mesh(roundedBox(cw, ch * 0.5, cd, 0.15, 0.06), shellDark, 0, ch * 0.25, 0, con);
+    mesh(new THREE.BoxGeometry(cw, ch * 0.5, cd), shell, 0, ch * 0.75, 0, con);
+    mesh(new THREE.BoxGeometry(cw + 0.02, 0.06, 0.04), black, 0, ch * 0.5, cf + 0.01, con);
+    for (var r = 0; r < 6; r++) mesh(new THREE.BoxGeometry(3.6, 0.05, 0.12), shellDark, 3.0, ch + 0.02, -2.4 + r * 0.42, con);
+    var SLOT = new THREE.Vector3(-1.6, 0, -0.5);
+    mesh(new THREE.BoxGeometry(3.8, 0.12, 1.1), shellDark, SLOT.x, ch + 0.05, SLOT.z, con);
+    mesh(new THREE.BoxGeometry(3.1, 0.14, 0.58), mat('#060508'), SLOT.x, ch + 0.06, SLOT.z, con);
+    var slotGlow = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.5), new THREE.MeshBasicMaterial({ color: '#8cc0ff', transparent: true, opacity: 0, depthWrite: false, toneMapped: false }));
+    slotGlow.rotation.x = -Math.PI / 2; slotGlow.position.set(SLOT.x, ch + 0.13, SLOT.z); con.add(slotGlow); rig.slotGlow = slotGlow;
+    rig.slotWorld = new THREE.Vector3(SLOT.x, 0, SLOT.z - 1.4);
+    rig.slotY = ch - 0.95 + 1.2;
+    [-4.5, -3.4].forEach(function (x) { mesh(new THREE.BoxGeometry(0.7, 0.45, 0.06), black, x, ch * 0.25, cf + 0.02, con); });
+    var pw = mesh(new THREE.BoxGeometry(0.9, 0.38, 0.22), mat('#2b2a33'), 3.4, ch * 0.25, cf + 0.09, con); addButton(rig, pw, 'power', 'z', 0.12);
+    var rs = mesh(new THREE.BoxGeometry(0.9, 0.38, 0.22), mat('#2b2a33'), 4.6, ch * 0.25, cf + 0.09, con); addButton(rig, rs, 'reset', 'z', 0.12);
+    var pled = mesh(new THREE.BoxGeometry(0.18, 0.12, 0.05), new THREE.MeshBasicMaterial({ color: '#ff3b30', toneMapped: false }), 2.65, ch * 0.25, cf + 0.03, con); rig.led = pled;
+    var pl = decal('POWER', 1.2, 0.2, { size: 50, color: '#cfcbc4' }); pl.position.set(3.4, ch * 0.25 - 0.4, cf + 0.035); con.add(pl);
+    var rl = decal('RESET', 1.2, 0.2, { size: 50, color: '#cfcbc4' }); rl.position.set(4.6, ch * 0.25 - 0.4, cf + 0.035); con.add(rl);
+    var bl = decal('DPL·8', 1.9, 0.48, { size: 76, color: '#1a56f0', font: DISPLAY, weight: '900' }); bl.position.set(-3.9, ch * 0.75, cf + 0.005); con.add(bl);
+    var bl2 = decal('HOME COMPUTER SYSTEM', 3.6, 0.2, { size: 46, color: '#3a3740', w: 1024, h: 57 }); bl2.position.set(-1.0, ch * 0.75, cf + 0.005); con.add(bl2);
+
+    /* controller */
+    var pad = new THREE.Group(); pad.position.set(0.4, 0, 3.4); pad.rotation.y = -0.06; scene.add(pad);
+    var padTop = 0.5;
+    mesh(roundedBox(6.8, 2.9, 0.5, 0.18, 0.08), shell, 0, 0.25, 0, pad).rotation.x = -Math.PI / 2;
+    mesh(new THREE.BoxGeometry(6.3, 0.03, 2.35), black, 0, padTop + 0.005, 0.05, pad).castShadow = false;
+    mesh(new THREE.BoxGeometry(1.3, 0.035, 2.0), mat('#55525e'), -0.15, padTop + 0.012, 0.08, pad).castShadow = false;
+    for (var s2 = 0; s2 < 3; s2++) mesh(new THREE.BoxGeometry(1.3, 0.04, 0.12), mat('#cfcbc4'), -0.15, padTop + 0.02, -0.7 + s2 * 0.25, pad).castShadow = false;
+    var dx = -2.25, dz = 0.15, armMat = mat('#1e1d24', { roughness: 0.4 });
+    mesh(new THREE.BoxGeometry(0.5, 0.2, 0.5), armMat, dx, padTop + 0.1, dz, pad);
+    [['up', 0, -0.52], ['down', 0, 0.52], ['left', -0.52, 0], ['right', 0.52, 0]].forEach(function (d) {
+      var m = mesh(new THREE.BoxGeometry(d[1] ? 0.56 : 0.5, 0.2, d[1] ? 0.5 : 0.56), armMat, dx + d[1], padTop + 0.1, dz + d[2], pad);
+      addButton(rig, m, d[0], 'y', 0.07);
+    });
+    [['select', -0.75, 'SELECT'], ['start', 0.45, 'START']].forEach(function (b) {
+      var m = mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.7, 14), mat('#1e1d24'), b[1], padTop + 0.08, 0.62, pad);
+      m.rotation.z = Math.PI / 2; addButton(rig, m, b[0], 'y', 0.05);
+      var t = decal(b[2], 1.0, 0.18, { size: 52, color: '#4d9bff' }); t.rotation.x = -Math.PI / 2; t.position.set(b[1], padTop + 0.025, 0.95); pad.add(t);
+    });
+    var red = mat('#d8332b', { roughness: 0.35 });
+    [['back', 1.55, 'B'], ['ok', 2.55, 'A']].forEach(function (b) {
+      var m = mesh(new THREE.CylinderGeometry(0.36, 0.38, 0.22, 28), red, b[1], padTop + 0.11, 0.25, pad);
+      addButton(rig, m, b[0], 'y', 0.08);
+      var t = decal(b[2], 0.3, 0.3, { size: 70, color: '#4d9bff', w: 96, h: 96 }); t.rotation.x = -Math.PI / 2; t.position.set(b[1] + 0.32, padTop + 0.025, 0.82); pad.add(t);
+    });
+    var pl2 = decal('DPL·8', 1.3, 0.34, { size: 70, color: '#4d9bff', font: DISPLAY, weight: '900' }); pl2.rotation.x = -Math.PI / 2; pl2.position.set(2.05, padTop + 0.025, -0.65); pad.add(pl2);
+    var curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-0.2, 0.25, 1.95), new THREE.Vector3(-1.1, 0.08, 1.95), new THREE.Vector3(-2.8, 0.08, 2.2),
+      new THREE.Vector3(-4.0, 0.08, 2.0), new THREE.Vector3(-4.5, 0.3, 1.9), new THREE.Vector3(-4.5, 0.6, 1.82)
+    ]);
+    mesh(new THREE.TubeGeometry(curve, 60, 0.07, 8, false), black, 0, 0, 0, scene);
+
+    /* cartridge rack + cartridges */
+    for (var tq = 0; tq < 4; tq++) {
+      var stepH = 0.3 + (3 - tq) * 0.6;
+      mesh(new THREE.BoxGeometry(3.6, stepH, 1.2), mat(tq % 2 ? '#2a2535' : '#24202e'), 9.7 + tq * 0.3, stepH / 2, -2.5 + tq * 1.2, scene);
+    }
+    var rackLabel = decal('CARTRIDGES', 2.8, 0.36, { size: 54, color: '#bdbdb5' }); rackLabel.rotation.x = -Math.PI / 2; rackLabel.position.set(10.6, 0.31, 1.6); scene.add(rackLabel);
+    var bodyGeo = new THREE.BoxGeometry(2.8, 2.4, 0.45);
+    CATS[0].items.forEach(function (it, i) {
+      var g = new THREE.Group(); scene.add(g);
+      mesh(bodyGeo, mat('#2b2a33', { roughness: 0.5 }), 0, 0, 0, g);
+      for (var gr = 0; gr < 5; gr++) mesh(new THREE.BoxGeometry(2.2, 0.05, 0.47), mat('#3a3944'), 0, -0.8 - gr * 0.1, 0, g);
+      var lbl = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshStandardMaterial({ map: cartLabel(it), roughness: 0.75 }));
+      lbl.position.set(0, 0.3, 0.228); g.add(lbl);
+      g.userData.cart = i;
+      var home = new THREE.Vector3(9.7 + i * 0.3, 0.3 + (3 - i) * 0.6 + 1.2, -2.5 + i * 1.2);
+      var homeQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.08, -0.32, 0));
+      g.position.copy(home); g.quaternion.copy(homeQ);
+      rig.carts.push({ i: i, group: g, home: home, homeQ: homeQ, state: 'rack' });
+      rig.picks.push(g);
+    });
+    rig.slotQ = new THREE.Quaternion();
+
+    rig.look = new THREE.Vector3(0.6, 4.8, -3.5); rig.zoom = 1;
+    rig.yaw = 0; rig.pitch = 0; rig.yawT = 0; rig.pitchT = 0;
+    rig.fit = function (aspect) {
+      cam.aspect = aspect;
+      var half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+      rig.dist = Math.max(23.5, 13.2 / (half * aspect));
+      cam.updateProjectionMatrix();
+    };
+    rig.place = function () {
+      var d = rig.dist * rig.zoom, yaw = rig.yaw, pitch = 0.22 + rig.pitch;
+      cam.position.set(rig.look.x + Math.sin(yaw) * Math.cos(pitch) * d, rig.look.y + Math.sin(pitch) * d, rig.look.z + Math.cos(yaw) * Math.cos(pitch) * d);
+      cam.lookAt(rig.look);
+    };
+    rig.setFinish = function (f) { shell.color.set(f.shell); shellDark.color.set(f.dark); };
+    rig.update = function (t) {
+      tvGlow.intensity = st.power ? 1.3 + Math.sin(t * 23) * 0.05 + Math.sin(t * 3) * 0.08 : 0.04;
+      back1.intensity = 3.2 + Math.sin(t * 0.8) * 0.25 * M;
+      pled.material.color.set(st.power ? '#ff3b30' : '#3a1210');
+    };
+    return rig;
+  }
+
+  /* ================= Rig B: pocket handheld ================= */
+  function makePocket() {
+    var rig = { buttons: [], picks: [], screenObj: pocketScreen, carts: [] };
+    var scene = new THREE.Scene(); rig.scene = scene;
+    scene.background = new THREE.Color('#120e1f');
+    var cam = new THREE.PerspectiveCamera(35, 0.5, 0.1, 200); rig.camera = cam;
+    scene.add(new THREE.HemisphereLight('#e6e0ff', '#1c1222', 0.4));
+    var key = new THREE.DirectionalLight('#fff4e6', 0.85); key.position.set(-6, 10, 14); scene.add(key);
+    var rim = new THREE.PointLight('#4f63ff', 2.0, 50, 1.4); rim.position.set(10, -4, 6); scene.add(rim);
+    var rim2 = new THREE.PointLight('#ff4f8a', 1.2, 50, 1.4); rim2.position.set(-10, 6, 6); scene.add(rim2);
+    var backWall = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), mat('#221c36', { roughness: 1 })); backWall.position.z = -6; scene.add(backWall);
+    var glow = new THREE.PointLight('#4f63ff', 2.4, 16, 1.4); glow.position.set(0, 2, -4.5); scene.add(glow);
+
+    var dev = new THREE.Group(); scene.add(dev); rig.dev = dev;
+    var BW = 8.4, BH = 13.8, BD = 1.5, BV = 0.2, front = BD / 2;
+    var shell = new THREE.MeshPhysicalMaterial({ color: '#cfcbc4', roughness: 0.5, clearcoat: 0.3 }); rig.shell = shell;
+    var bodyGeo = new THREE.ExtrudeGeometry(rrShape(BW - 2 * BV, BH - 2 * BV, 0.45, 2.0), { depth: BD - 2 * BV, bevelEnabled: true, bevelThickness: BV, bevelSize: BV, bevelSegments: 5, curveSegments: 24 });
+    bodyGeo.translate(0, 0, -(BD - 2 * BV) / 2);
+    mesh(bodyGeo, shell, 0, 0, 0, dev);
+    mesh(new THREE.BoxGeometry(BW - 0.6, 0.04, 0.02), mat('#9c978f'), 0, BH / 2 - 0.7, front + 0.01, dev);
+    var bezelMat = mat('#4a4656', { roughness: 0.4 }); rig.bezelMat = bezelMat;
+    mesh(new THREE.ShapeGeometry(rrShape(7.2, 6.3, 0.35, 1.0), 10), bezelMat, 0, 2.9, front + 0.012, dev);
+    var scr = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 5.04), new THREE.MeshBasicMaterial({ map: pocketScreen.tex, toneMapped: false }));
+    scr.position.set(0.25, 2.85, front + 0.02); scr.userData.screen = true; dev.add(scr); rig.screenMesh = scr;
+    var led = new THREE.Mesh(new THREE.CircleGeometry(0.11, 16), new THREE.MeshBasicMaterial({ color: '#ff3b30', toneMapped: false })); led.position.set(-3.05, 3.6, front + 0.02); dev.add(led); rig.led = led;
+    var ll = decal('POWER', 0.8, 0.16, { size: 52, color: '#cfcbc4' }); ll.position.set(-3.05, 3.25, front + 0.02); dev.add(ll);
+    var b1 = decal('DPL POCKET', 3.4, 0.5, { size: 70, color: '#1a56f0', align: 'left', font: DISPLAY, weight: '900' }); b1.position.set(-2.0, -0.85, front + 0.012); dev.add(b1);
+    var btnDark = mat('#26242c', { roughness: 0.4 });
+    var dpx = -2.3, dpy = -3.2;
+    mesh(new THREE.BoxGeometry(0.7, 0.7, 0.3), btnDark, dpx, dpy, front + 0.15, dev);
+    [['up', 0, 0.72], ['down', 0, -0.72], ['left', -0.72, 0], ['right', 0.72, 0]].forEach(function (d) {
+      var m = mesh(new THREE.BoxGeometry(d[1] ? 0.76 : 0.7, d[1] ? 0.7 : 0.76, 0.3), btnDark, dpx + d[1], dpy + d[2], front + 0.15, dev);
+      addButton(rig, m, d[0], 'z', 0.08);
+    });
+    var ab = mat('#9c1f4f', { roughness: 0.35 });
+    [['ok', 2.85, -2.6, 'A'], ['back', 1.35, -3.3, 'B']].forEach(function (b) {
+      var m = mesh(new THREE.CylinderGeometry(0.62, 0.64, 0.3, 32), ab, b[1], b[2], front + 0.15, dev);
+      m.rotation.x = Math.PI / 2; addButton(rig, m, b[0], 'z', 0.08);
+      var t = decal(b[3], 0.42, 0.42, { size: 70, color: '#3a3740', w: 96, h: 96 }); t.position.set(b[1] + 0.05, b[2] - 0.95, front + 0.012); dev.add(t);
+    });
+    [['select', -0.9, 'SELECT'], ['start', 0.75, 'START']].forEach(function (b) {
+      var m = mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.95, 16), mat('#8f8a96'), b[1], -5.4, front + 0.08, dev);
+      m.rotation.z = Math.PI / 2 + 0.45; addButton(rig, m, b[0], 'z', 0.05);
+      var t = decal(b[2], 1.0, 0.18, { size: 52, color: '#3a3740' }); t.rotation.z = 0.45; t.position.set(b[1] + 0.12, -5.78, front + 0.012); dev.add(t);
+    });
+    for (var s = 0; s < 6; s++) { var sl = mesh(new THREE.BoxGeometry(0.13, 1.0, 0.04), mat('#5a5660'), 1.5 + s * 0.28, -5.5 - s * 0.1, front + 0.01, dev); sl.rotation.z = 0.45; }
+
+    rig.yaw = 0; rig.pitch = 0; rig.yawT = 0; rig.pitchT = 0;
+    rig.fit = function (aspect) {
+      cam.aspect = aspect;
+      var half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
+      rig.dist = Math.max((BH / 2 + 2.4) / half, (BW / 2 + 0.6) / (half * aspect));
+      cam.updateProjectionMatrix();
+    };
+    rig.place = function () { dev.rotation.y = rig.yaw; dev.rotation.x = rig.pitch; cam.position.set(0, 1.3, rig.dist); cam.lookAt(0, 1.3, 0); };
+    rig.setFinish = function (f) { shell.color.set(f.shell); bezelMat.color.set(f.bezel); };
+    rig.update = function (t) { dev.position.y = Math.sin(t * 1.1) * 0.12 * M; led.material.color.set(st.power ? '#ff3b30' : '#3a1210'); };
+    return rig;
+  }
+
+  /* ================= Screen OS ================= */
+  var st = { power: true, mode: 'boot', boot: 0, cat: 0, idx: [0, 0, 0, 0], scroll: [0, 0, 0, 0], slide: 1, catSlide: 1, flash: 0, off: 0, loaded: 0, loadT: 0 };
+  var S, g2;
+  function rr(x, y, w, h, r) { g2.beginPath(); g2.moveTo(x + r, y); g2.arcTo(x + w, y, x + w, y + h, r); g2.arcTo(x + w, y + h, x, y + h, r); g2.arcTo(x, y + h, x, y, r); g2.arcTo(x, y, x + w, y, r); g2.closePath(); }
+  function lines(text, maxW) {
+    var words = text.split(' '), out = [], line = '';
+    for (var i = 0; i < words.length; i++) { var t = line ? line + ' ' + words[i] : words[i]; if (g2.measureText(t).width > maxW && line) { out.push(line); line = words[i]; } else line = t; }
+    if (line) out.push(line); return out;
+  }
+  function wrap(text, x, y, maxW, lh, maxLines) {
+    var ls = lines(text, maxW); if (maxLines && ls.length > maxLines) { ls = ls.slice(0, maxLines); ls[maxLines - 1] += '…'; }
+    ls.forEach(function (l, i) { g2.fillText(l, x, y + i * lh); }); return ls.length;
+  }
+  function poly(cx, cy, r, n, rot, fill) {
+    g2.beginPath();
+    for (var i = 0; i < n; i++) { var a = rot + i / n * Math.PI * 2, px = cx + Math.cos(a) * r, py = cy + Math.sin(a) * r; if (i) g2.lineTo(px, py); else g2.moveTo(px, py); }
+    g2.closePath(); g2.fillStyle = fill; g2.fill();
+  }
+  function icon(it, cx, cy, size, t, spin) {
+    if (it.logo || it.ini) {
+      var w = it.wide ? size * 1.7 : size, h = size, x = cx - w / 2, y = cy - h / 2;
+      var im = it.logo && LOGO_IMG[it.logo];
+      rr(x, y, w, h, size * 0.18);
+      if (im && im.ready) {
+        g2.fillStyle = '#ffffff'; g2.fill();
+        var pad = size * 0.12, iw = im.naturalWidth || im.width || 1, ih = im.naturalHeight || im.height || 1;
+        var k = Math.min((w - pad * 2) / iw, (h - pad * 2) / ih);
+        g2.drawImage(im, cx - iw * k / 2, cy - ih * k / 2, iw * k, ih * k);
+      } else {
+        g2.fillStyle = it.color; g2.fill();
+        g2.fillStyle = '#0f0c18'; g2.font = '900 ' + Math.round(size * 0.5) + 'px ' + DISPLAY; g2.textAlign = 'center'; g2.textBaseline = 'middle';
+        g2.fillText(it.ini, cx, cy + size * 0.03); g2.textAlign = 'left';
+      }
+    } else poly(cx, cy, size * 0.48, it.sides || 6, t * (spin || 0.5) * M, it.color);
+  }
+  function hit(x, y, w, h, fn) { S.hits.push({ x: x, y: y, w: w, h: h, act: fn }); }
+
+  function bg(t) {
+    var W = S.W, H = S.H;
+    g2.fillStyle = '#13102a'; g2.fillRect(0, 0, W, H);
+    g2.fillStyle = '#0c1d55'; g2.fillRect(0, H * 0.58, W, H * 0.42);
+    g2.strokeStyle = 'rgba(77,155,255,0.38)'; g2.lineWidth = 2;
+    for (var i = 0; i < 9; i++) { var y = H * 0.58 + Math.pow(i / 8, 2) * H * 0.42 + ((t * 30 * M) % 20) * (i / 8); g2.beginPath(); g2.moveTo(0, y); g2.lineTo(W, y); g2.stroke(); }
+    for (var v = -10; v <= 10; v++) { g2.beginPath(); g2.moveTo(W / 2 + v * 30, H * 0.58); g2.lineTo(W / 2 + v * 160, H); g2.stroke(); }
+    g2.fillStyle = 'rgba(26,86,240,0.9)'; g2.beginPath(); g2.arc(W * 0.82, H * 0.58, 76, Math.PI, 0); g2.fill();
+    g2.fillStyle = '#13102a'; for (var b = 0; b < 4; b++) g2.fillRect(W * 0.82 - 78, H * 0.58 - 16 - b * 17, 156, 4 + b);
+  }
+  function statusBar() {
+    var W = S.W;
+    g2.fillStyle = 'rgba(0,0,0,0.4)'; g2.fillRect(0, 0, W, 48);
+    g2.font = '700 20px ' + MONO; g2.fillStyle = '#ecece4'; g2.textBaseline = 'middle'; g2.textAlign = 'left';
+    var cart = st.loaded == null ? 'NO CARTRIDGE' : 'CART: ' + CATS[0].items[st.loaded].title.toUpperCase();
+    g2.fillText(S.compact ? 'DPL POCKET' : cart, 24, 25);
+    var d = new Date(), hh = d.getHours(), mm = d.getMinutes();
+    g2.textAlign = 'right'; g2.fillText((hh % 12 || 12) + ':' + (mm < 10 ? '0' : '') + mm + (hh < 12 ? 'AM' : 'PM'), W - 24, 25); g2.textAlign = 'left';
+  }
+  function hintBar(parts) {
+    var W = S.W, H = S.H, hb = 54, x = 24, fs = S.compact ? 20 : 17;
+    g2.fillStyle = 'rgba(0,0,0,0.55)'; g2.fillRect(0, H - hb, W, hb); g2.textBaseline = 'middle';
+    parts.forEach(function (p) {
+      g2.font = '700 ' + fs + 'px ' + MONO; var w = g2.measureText(p[0]).width + 18;
+      if (x + w > W - 20) return;
+      rr(x, H - hb + 13, w, 28, 6); g2.fillStyle = '#ecece4'; g2.fill();
+      g2.fillStyle = '#13102a'; g2.fillText(p[0], x + 9, H - hb + 28);
+      x += w + 8; g2.font = '500 ' + fs + 'px ' + MONO; g2.fillStyle = '#dcdcd4'; g2.fillText(p[1], x, H - hb + 28);
+      x += g2.measureText(p[1]).width + 22;
+    });
+  }
+
+  function drawBoot(t) {
+    var W = S.W, H = S.H;
+    g2.fillStyle = '#08060f'; g2.fillRect(0, 0, W, H);
+    var e = 1 - Math.pow(1 - Math.min(1, st.boot / 1.0), 3);
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    g2.font = '900 ' + (S.compact ? 150 : 170) + 'px ' + DISPLAY;
+    g2.fillStyle = '#1a56f0'; g2.fillText('DPL·8', W / 2, -90 + e * (H / 2 + 30));
+    if (st.boot > 1.1) {
+      g2.font = '600 22px ' + MONO; g2.fillStyle = '#bdbdb5'; g2.fillText('© 2026 DAVID PHAM LE', W / 2, H / 2 + 80);
+      if (Math.floor(t * 2) % 2 === 0) { g2.fillStyle = '#ecece4'; g2.font = '700 26px ' + MONO; g2.fillText('PRESS START', W / 2, H / 2 + 150); }
+    }
+    g2.textAlign = 'left';
+    hit(0, 0, W, H, function () { go('start'); });
+  }
+  function drawLoad(t) {
+    var W = S.W, H = S.H, it = CATS[0].items[st.loaded];
+    g2.fillStyle = '#08060f'; g2.fillRect(0, 0, W, H);
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    g2.font = '700 24px ' + MONO; g2.fillStyle = '#bdbdb5'; g2.fillText('LOADING CARTRIDGE', W / 2, H / 2 - 80);
+    g2.font = '900 80px ' + DISPLAY; g2.fillStyle = it.color; g2.fillText(it.title.toUpperCase(), W / 2, H / 2);
+    rr(W / 2 - 200, H / 2 + 70, 400, 22, 4); g2.strokeStyle = '#ecece4'; g2.lineWidth = 3; g2.stroke();
+    g2.fillStyle = '#ecece4'; g2.fillRect(W / 2 - 196, H / 2 + 74, 392 * Math.min(1, st.loadT / 0.9), 14);
+    g2.textAlign = 'left';
+  }
+
+  function drawHome(t) {
+    var W = S.W, H = S.H, C = S.compact;
+    bg(t); statusBar();
+    var tx = 24, tabFs = C ? 40 : 38, padX = C ? 28 : 40, gap = C ? 8 : 10;
+    var fitTabs = function () { g2.font = '900 ' + tabFs + 'px ' + DISPLAY; return CATS.reduce(function (a, c) { return a + g2.measureText(c.name.toUpperCase()).width + padX + gap; }, 24); };
+    while (fitTabs() > W - 16 && tabFs > 22) tabFs -= 2;
+    CATS.forEach(function (c, i) {
+      g2.font = '900 ' + tabFs + 'px ' + DISPLAY; var label = c.name.toUpperCase(), w = g2.measureText(label).width + padX;
+      var on = i === st.cat;
+      rr(tx, 64, w, 56, 10); g2.fillStyle = on ? '#ecece4' : 'rgba(255,255,255,0.1)'; g2.fill();
+      g2.fillStyle = on ? '#13102a' : '#e4e4dc'; g2.textBaseline = 'middle'; g2.fillText(label, tx + padX / 2, 94);
+      (function (ci) { hit(tx, 64, w, 56, function () { go('cat', ci); }); })(i);
+      tx += w + gap;
+    });
+    var cat = CATS[st.cat], sel = st.idx[st.cat], off = (1 - st.catSlide) * 40;
+    var listW = C ? W - 64 : 540, rowH = C ? 100 : 84, step = C ? 110 : 94;
+    var vis = Math.floor((H - 140 - 62) / step), n = cat.items.length;
+    if (sel < st.scroll[st.cat]) st.scroll[st.cat] = sel;
+    if (sel > st.scroll[st.cat] + vis - 1) st.scroll[st.cat] = sel - vis + 1;
+    var top = st.scroll[st.cat];
+    g2.globalAlpha = 0.35 + 0.65 * st.catSlide;
+    for (var i = top; i < Math.min(n, top + vis); i++) {
+      var it = cat.items[i], y = 138 + (i - top) * step, on = i === sel;
+      rr(24 + off, y, listW, rowH, 12);
+      g2.fillStyle = on ? 'rgba(255,255,255,0.18)' : 'rgba(8,6,20,0.6)'; g2.fill();
+      if (on) { g2.lineWidth = 4; g2.strokeStyle = it.color; g2.stroke(); }
+      icon(it, (it.wide ? 82 : 70) + off, y + rowH / 2, C ? 58 : 50, t + i, on ? 1.3 : 0.3);
+      var textX = (it.wide ? 140 : 112) + off;
+      g2.textBaseline = 'alphabetic'; g2.fillStyle = '#ffffff';
+      var tfs = C ? 44 : 38, title = it.title.toUpperCase(), maxT = listW - (textX - 24) - 44;
+      g2.font = '800 ' + tfs + 'px ' + DISPLAY;
+      while (g2.measureText(title).width > maxT && tfs > 24) { tfs -= 2; g2.font = '800 ' + tfs + 'px ' + DISPLAY; }
+      g2.fillText(title, textX, y + rowH / 2 + 2);
+      g2.font = '600 ' + (C ? 19 : 16) + 'px ' + MONO; g2.fillStyle = '#d4d4cc';
+      g2.fillText((st.cat === 1 ? it.kind + ' · ' + it.status : it.kind).toUpperCase(), textX, y + rowH / 2 + (C ? 30 : 26));
+      if (on) { g2.fillStyle = it.color; g2.font = '900 34px ' + DISPLAY; g2.fillText('▸', 24 + listW - 34 + off, y + rowH / 2 + 12); }
+      (function (ii, yy) { hit(24, yy, listW, rowH, function () { if (st.idx[st.cat] === ii) go('open'); else { st.idx[st.cat] = ii; beep(520, 0.03); } }); })(i, y);
+    }
+    if (n > vis) {
+      var trackX = 24 + listW + 10, trackY = 138, trackH = vis * step - (step - rowH);
+      rr(trackX, trackY, 8, trackH, 4); g2.fillStyle = 'rgba(255,255,255,0.12)'; g2.fill();
+      var th = Math.max(30, trackH * vis / n), ty = trackY + (trackH - th) * (top / (n - vis));
+      rr(trackX, ty, 8, th, 4); g2.fillStyle = '#ecece4'; g2.fill();
+    }
+    if (!C) {
+      var it2 = cat.items[sel], px = 600 + off, py = 138, pw = 336, ph = H - 138 - 70;
+      rr(px, py, pw, ph, 14); g2.fillStyle = 'rgba(8,6,20,0.78)'; g2.fill();
+      g2.lineWidth = 2; g2.strokeStyle = 'rgba(255,255,255,0.15)'; g2.stroke();
+      icon(it2, px + pw / 2, py + 92, 110, t, 0.8);
+      g2.font = '700 15px ' + MONO; var sw = g2.measureText(it2.status.toUpperCase()).width + 22;
+      rr(px + 22, py + 172, sw, 30, 8); g2.fillStyle = it2.color; g2.fill();
+      g2.fillStyle = '#13102a'; g2.textBaseline = 'middle'; g2.fillText(it2.status.toUpperCase(), px + 33, py + 188);
+      g2.textBaseline = 'alphabetic'; g2.font = '500 21px ' + BODY; g2.fillStyle = '#ecece4';
+      wrap(it2.desc, px + 22, py + 242, pw - 44, 29, 8);
+      hit(px, py, pw, ph, function () { go('open'); });
+    }
+    g2.globalAlpha = 1;
+    hintBar(C ? [['A', 'Open'], ['←→', 'Tab'], ['SELECT', 'About']] : [['↑↓', 'Choose'], ['A', 'Open'], ['←→', 'Switch tab'], ['SELECT', 'About me']]);
+  }
+
+  function drawDetail(t) {
+    var W = S.W, H = S.H, C = S.compact;
+    bg(t); statusBar();
+    var cat = CATS[st.cat], it = cat.items[st.idx[st.cat]];
+    var off = (1 - st.slide) * 60; g2.globalAlpha = 0.3 + 0.7 * st.slide;
+    rr(24, 62, 130, 48, 10); g2.fillStyle = 'rgba(255,255,255,0.14)'; g2.fill();
+    g2.fillStyle = '#ecece4'; g2.font = '700 19px ' + MONO; g2.textBaseline = 'middle'; g2.fillText('◂ BACK', 42, 87);
+    hit(24, 62, 130, 48, function () { go('back'); });
+    g2.fillStyle = it.color; g2.font = '700 ' + (C ? 18 : 17) + 'px ' + MONO;
+    var crumb = (cat.name + ' · ' + (st.idx[st.cat] + 1) + '/' + cat.items.length).toUpperCase();
+    g2.fillText(crumb, 172, 87);
+    var big = it.logo || it.ini ? 84 : 70;
+    icon(it, W - 24 - (it.wide ? big * 0.85 : big / 2), 108, big, t, 1);
+    g2.textBaseline = 'alphabetic'; g2.fillStyle = '#ffffff';
+    var maxTitle = W - 48 - (it.wide ? big * 1.8 : big) - 20, title = it.title.toUpperCase(), dfs = C ? 74 : 80;
+    g2.font = '900 ' + dfs + 'px ' + DISPLAY;
+    while (g2.measureText(title).width > maxTitle && dfs > 36) { dfs -= 2; g2.font = '900 ' + dfs + 'px ' + DISPLAY; }
+    g2.fillText(title, 24 + off, 196);
+    g2.font = '600 ' + (C ? 20 : 18) + 'px ' + MONO; g2.fillStyle = '#d4d4cc'; g2.fillText(it.kind.toUpperCase(), 24 + off, 230);
+    var kw = g2.measureText(it.kind.toUpperCase()).width;
+    g2.font = '700 15px ' + MONO; var sw = g2.measureText(it.status.toUpperCase()).width + 22;
+    var sx = 24 + off + kw + 16, sy = 211;
+    if (sx + sw > W - 24) { sx = 24 + off; sy = 242; }
+    rr(sx, sy, sw, 28, 8); g2.fillStyle = it.color; g2.fill();
+    g2.fillStyle = '#13102a'; g2.textBaseline = 'middle'; g2.fillText(it.status.toUpperCase(), sx + 11, sy + 15);
+    g2.textBaseline = 'alphabetic';
+    var topY = sy > 211 ? 284 : 256;
+
+    var hasChecks = it.checks.length > 0, side = hasChecks && !C;
+    var descW = side ? 540 : W - 48, lh = C ? 36 : 33;
+    g2.font = '500 ' + (C ? 27 : 24) + 'px ' + BODY;
+    var dl = lines(it.desc, descW - 40); if (dl.length > (C ? 4 : 6)) dl = dl.slice(0, C ? 4 : 6);
+    var descH = dl.length * lh + 30;
+    rr(24 + off, topY, descW, descH, 12); g2.fillStyle = 'rgba(8,6,20,0.66)'; g2.fill();
+    g2.fillStyle = '#f2f2ea'; dl.forEach(function (l, i) { g2.fillText(l, 44 + off, topY + 37 + i * lh); });
+
+    if (hasChecks) {
+      var cx = side ? 588 + off : 24 + off, cy = side ? topY : topY + descH + 14, cw = side ? 348 : W - 48;
+      var fs = C ? 19 : 16, rowLh = fs + 6;
+      g2.font = '500 ' + fs + 'px ' + MONO;
+      var rows = it.checks.map(function (c) { return lines(c[0], cw - 76); });
+      var maxBottom = H - 54 - 64;
+      var total = 44; rows.forEach(function (r) { total += r.length * rowLh + 12; });
+      var ph = Math.min(total, maxBottom - cy);
+      rr(cx, cy, cw, ph, 12); g2.fillStyle = 'rgba(8,6,20,0.78)'; g2.fill();
+      g2.font = '700 15px ' + MONO; g2.fillStyle = '#bdbdb5'; g2.fillText(it.listTitle || 'NOTES', cx + 20, cy + 30);
+      var yy = cy + 44;
+      it.checks.forEach(function (c, i) {
+        if (yy + rowLh > cy + ph) return;
+        rr(cx + 20, yy + 2, 18, 18, 4);
+        if (c[1]) { g2.fillStyle = it.color; g2.fill(); } else { g2.strokeStyle = '#bdbdb5'; g2.lineWidth = 2; g2.stroke(); }
+        g2.font = '500 ' + fs + 'px ' + MONO; g2.fillStyle = c[1] ? '#ecece4' : '#cfcfc7';
+        rows[i].forEach(function (l, j) { if (yy + j * rowLh + rowLh <= cy + ph) g2.fillText(l, cx + 52, yy + 16 + j * rowLh); });
+        yy += rows[i].length * rowLh + 12;
+      });
+    }
+    var tx = 24 + off, ty = H - 54 - 52; g2.font = '700 16px ' + MONO; g2.textBaseline = 'middle';
+    for (var k = 0; k < it.tags.length; k++) {
+      var tag = it.tags[k], w = g2.measureText(tag).width + 24; if (tx + w > W - 24) break;
+      rr(tx, ty, w, 36, 8); g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fill(); g2.strokeStyle = it.color; g2.lineWidth = 2; g2.stroke();
+      g2.fillStyle = '#ecece4'; g2.fillText(tag, tx + 12, ty + 19); tx += w + 8;
+    }
+    g2.globalAlpha = 1;
+    var startLabel = it.href ? (/^mailto:/.test(it.href) ? 'Email' : (/^https?:/.test(it.href) ? 'Visit site' : 'Open')) : 'Case study';
+    hintBar(C ? [['B', 'Back'], ['START', startLabel], ['↑↓', 'Next']] : [['B', 'Back'], ['START', startLabel], ['↑↓', 'Prev / next'], ['←→', 'Tab']]);
+    hit(0, 130, W, H - 240, function () { go('start'); });
+  }
+
+  function drawOff() {
+    var W = S.W, H = S.H;
+    g2.fillStyle = '#050407'; g2.fillRect(0, 0, W, H);
+    if (st.off < 0.35) { var k = st.off / 0.35, hh = Math.max(3, H * (1 - k) * 0.5); g2.fillStyle = 'rgba(230,240,255,' + (1 - k) + ')'; g2.fillRect(W * k * 0.3, H / 2 - hh / 2, W * (1 - k * 0.6), hh); }
+    hit(0, 0, W, H, function () { toast('The console is off. Press POWER to turn it on.'); });
+  }
+  function crtPass() {
+    var W = S.W, H = S.H;
+    g2.fillStyle = 'rgba(0,0,0,0.13)'; for (var y = 0; y < H; y += 4) g2.fillRect(0, y, W, 2);
+    var v = g2.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)'); g2.fillStyle = v; g2.fillRect(0, 0, W, H);
+  }
+  function drawScreen(t) {
+    S.hits = [];
+    if (!st.power) drawOff();
+    else if (st.mode === 'boot') drawBoot(t);
+    else if (st.mode === 'load') drawLoad(t);
+    else if (st.mode === 'home') drawHome(t);
+    else drawDetail(t);
+    if (st.flash > 0) { g2.fillStyle = 'rgba(255,255,255,' + st.flash * 0.25 + ')'; g2.fillRect(0, 0, S.W, S.H); }
+    if (S.crt) crtPass();
+    S.tex.needsUpdate = true;
+  }
+
+  function reboot() { st.mode = 'boot'; st.boot = 0; st.flash = 1; }
+  function go(action, arg) {
+    if (action === 'power') { st.power = !st.power; st.off = 0; beep(st.power ? 660 : 180, 0.12); if (st.power) reboot(); return; }
+    if (action === 'sound') { setSound(!soundOn); return; }
+    if (!st.power) return;
+    if (action === 'reset') { reboot(); beep(300, 0.1); return; }
+    if (st.mode === 'load') return;
+    if (st.mode === 'boot') { if (st.boot > 0.4) { st.mode = 'home'; st.catSlide = 0; beep(990, 0.12); } return; }
+    var cat = CATS[st.cat], n = cat.items.length;
+    if (st.mode === 'home') {
+      if (action === 'up') { st.idx[st.cat] = (st.idx[st.cat] - 1 + n) % n; beep(520, 0.03); }
+      else if (action === 'down') { st.idx[st.cat] = (st.idx[st.cat] + 1) % n; beep(520, 0.03); }
+      else if (action === 'left' || action === 'L') { st.cat = (st.cat - 1 + CATS.length) % CATS.length; st.catSlide = 0; beep(440, 0.04); }
+      else if (action === 'right' || action === 'R') { st.cat = (st.cat + 1) % CATS.length; st.catSlide = 0; beep(440, 0.04); }
+      else if (action === 'cat') { st.cat = arg; st.catSlide = 0; beep(440, 0.04); }
+      else if (action === 'ok' || action === 'start' || action === 'open') { st.mode = 'detail'; st.slide = 0; st.flash = 0.8; beep(780, 0.06); }
+      else if (action === 'select') { st.cat = 2; st.idx[2] = 0; st.mode = 'detail'; st.slide = 0; beep(780, 0.06); }
+      else if (action === 'back') beep(200, 0.05);
+    } else {
+      if (action === 'back') { st.mode = 'home'; st.catSlide = 1; beep(380, 0.05); }
+      else if (action === 'start' || action === 'ok') { beep(990, 0.08); openItem(cat.items[st.idx[st.cat]]); }
+      else if (action === 'up') { st.idx[st.cat] = (st.idx[st.cat] - 1 + n) % n; st.slide = 0; beep(520, 0.03); }
+      else if (action === 'down') { st.idx[st.cat] = (st.idx[st.cat] + 1) % n; st.slide = 0; beep(520, 0.03); }
+      else if (action === 'left' || action === 'L') { st.cat = (st.cat - 1 + CATS.length) % CATS.length; st.mode = 'home'; st.catSlide = 0; beep(440, 0.04); }
+      else if (action === 'right' || action === 'R') { st.cat = (st.cat + 1) % CATS.length; st.mode = 'home'; st.catSlide = 0; beep(440, 0.04); }
+      else if (action === 'select') { st.cat = 2; st.idx[2] = 0; st.slide = 0; beep(780, 0.06); }
+    }
+  }
+
+  /* ================= Rigs ================= */
+  var desk, pocket, rig = null;
+  var FINISHES = {
+    classic: { shell: '#cfcbc4', dark: '#3a3740', bezel: '#4a4656' },
+    midnight: { shell: '#2c2a38', dark: '#14131b', bezel: '#14131b' },
+    blue: { shell: '#1a56f0', dark: '#0c2a78', bezel: '#0c2a78' }
+  };
+
+  /* cartridges: insert / eject */
+  function insertCart(i) {
+    desk.carts.forEach(function (c) { if (c.state === 'slot' && c.i !== i) { c.state = 'rack'; } });
+    var c = desk.carts[i]; c.state = 'slot';
+    st.loaded = i;
+    if (!st.power) { toast('Cartridge in. Press POWER to play.'); return; }
+    st.cat = 0; st.idx[0] = i; st.mode = 'load'; st.loadT = 0; st.flash = 1; beep(660, 0.1);
+  }
+  function ejectCart(i) {
+    var c = desk.carts[i]; c.state = 'rack';
+    if (st.loaded === i) {
+      st.loaded = null; beep(260, 0.1);
+      if (st.power) { st.cat = 0; st.mode = 'home'; st.catSlide = 0; toast('Cartridge ejected. Drag another one into the slot.'); }
+    }
+  }
+
+  function chooseRig() {
+    var w = window.innerWidth, h = window.innerHeight, aspect = w / h;
+    var next = (w < 700 || aspect < 0.8) ? pocket : desk;
+    if (next !== rig) { rig = next; S = rig.screenObj; g2 = S.ctx; document.body.classList.toggle('pocket', rig === pocket); }
+    renderer.setSize(w, h, false);
+    desk.fit(aspect); pocket.fit(aspect);
+  }
+
+  /* ================= Input ================= */
+  var ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), down = null, hover = { x: 0, y: 0 };
+  var dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -4.3), dragPt = new THREE.Vector3();
+  var drag = null; // {i, start:{x,y}, active, target:Vector3, wasSlot}
+  function setNdc(e) { var r = canvas.getBoundingClientRect(); ndc.x = ((e.clientX - r.left) / r.width) * 2 - 1; ndc.y = -((e.clientY - r.top) / r.height) * 2 + 1; }
+  function pick() {
+    ray.setFromCamera(ndc, rig.camera);
+    var list = rig.buttons.map(function (b) { return b.mesh; }).concat([rig.screenMesh]).concat(rig.picks);
+    var hs = ray.intersectObjects(list, true);
+    for (var i = 0; i < hs.length; i++) {
+      var o = hs[i].object;
+      while (o) {
+        if (o.userData.action) return { kind: 'button', action: o.userData.action };
+        if (o.userData.screen) return { kind: 'screen', uv: hs[i].uv };
+        if (o.userData.cart != null) return { kind: 'cart', i: o.userData.cart };
+        o = o.parent;
+      }
+    }
+    return null;
+  }
+  function press(action) { rig.buttons.forEach(function (b) { if (b.action === action) b.t = 1; }); go(action); }
+  function nearSlot(v) { return Math.hypot(v.x - desk.slotWorld.x, v.z - desk.slotWorld.z) < 2.4; }
+
+  function bindInput() {
+    canvas.addEventListener('pointerdown', function (e) {
+      setNdc(e);
+      var p = pick();
+      if (p && p.kind === 'button') { press(p.action); return; }
+      if (p && p.kind === 'cart') {
+        var c = desk.carts[p.i];
+        drag = { i: p.i, sx: e.clientX, sy: e.clientY, active: false, target: c.group.position.clone(), wasSlot: c.state === 'slot' };
+        canvas.setPointerCapture(e.pointerId); return;
+      }
+      if (p && p.kind === 'screen') {
+        var x = p.uv.x * S.W, y = (1 - p.uv.y) * S.H;
+        for (var i = S.hits.length - 1; i >= 0; i--) { var r = S.hits[i]; if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) { r.act(); break; } }
+        return;
+      }
+      down = { x: e.clientX, y: e.clientY, yaw: rig.yawT, pitch: rig.pitchT };
+      canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing';
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      setNdc(e);
+      if (drag) {
+        if (!drag.active && Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 6) {
+          drag.active = true; var c = desk.carts[drag.i]; c.state = 'drag'; beep(420, 0.04);
+          if (drag.wasSlot) { st.loaded = null; if (st.power && st.mode !== 'boot') { st.mode = 'home'; st.cat = 0; st.catSlide = 0; } }
+        }
+        if (drag.active) {
+          ray.setFromCamera(ndc, desk.camera);
+          if (ray.ray.intersectPlane(dragPlane, dragPt)) {
+            drag.target.set(Math.max(-12, Math.min(13, dragPt.x)), 4.3, Math.max(-3.6, Math.min(6, dragPt.z)));
+          }
+          canvas.style.cursor = 'grabbing';
+        }
+        return;
+      }
+      if (down) {
+        var lim = rig === desk ? [0.7, 0.22] : [1.1, 0.6];
+        rig.yawT = Math.max(-lim[0], Math.min(lim[0], down.yaw - (e.clientX - down.x) * (rig === desk ? 0.004 : -0.008)));
+        rig.pitchT = Math.max(-lim[1], Math.min(lim[1], down.pitch + (e.clientY - down.y) * (rig === desk ? 0.003 : 0.006)));
+        return;
+      }
+      if (e.pointerType === 'mouse') {
+        hover.x = ndc.x; hover.y = ndc.y;
+        var p = pick(); canvas.style.cursor = p ? (p.kind === 'cart' ? 'grab' : 'pointer') : 'default';
+      }
+    });
+    function release() {
+      if (drag) {
+        var c = desk.carts[drag.i];
+        if (drag.active) {
+          if (nearSlot(drag.target)) insertCart(drag.i);
+          else {
+            c.state = 'rack';
+            if (drag.wasSlot) { beep(260, 0.1); toast('Cartridge ejected. Drag another one into the slot.'); }
+          }
+        } else {
+          if (drag.wasSlot) ejectCart(drag.i); else insertCart(drag.i);
+        }
+        drag = null; canvas.style.cursor = 'default'; return;
+      }
+      if (down) { down = null; rig.yawT = 0; rig.pitchT = 0; }
+      canvas.style.cursor = 'default';
+    }
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+    canvas.addEventListener('wheel', function (e) { if (rig === desk) { e.preventDefault(); desk.zoom = Math.max(0.55, Math.min(1.2, desk.zoom + e.deltaY * 0.0012)); } }, { passive: false });
+    var KEYMAP = { arrowup: 'up', arrowdown: 'down', arrowleft: 'left', arrowright: 'right', enter: 'ok', z: 'ok', ' ': 'start', escape: 'back', backspace: 'back', x: 'back', q: 'L', e: 'R', shift: 'select', p: 'power', r: 'reset' };
+    window.addEventListener('keydown', function (e) {
+      var tag = (e.target && e.target.tagName) || '';
+      if (/^(a|button|input|textarea)$/i.test(tag) && (e.key === 'Enter' || e.key === ' ')) return;
+      var a = KEYMAP[e.key.toLowerCase()];
+      if (a) { e.preventDefault(); if (!e.repeat || /up|down|left|right/.test(a)) press(a); }
+    });
+    document.querySelectorAll('.swatch').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var f = FINISHES[b.dataset.shell]; desk.setFinish(f); pocket.setFinish(f);
+        document.querySelectorAll('.swatch').forEach(function (o) { o.setAttribute('aria-pressed', String(o === b)); });
+        beep(660, 0.05);
+      });
+    });
+    window.addEventListener('resize', chooseRig);
+  }
+
+  /* ================= Loop ================= */
+  var clock = new THREE.Clock(), tmpV = new THREE.Vector3(), faceQ = new THREE.Quaternion(), tiltE = new THREE.Euler();
+  function updateCarts(dt, t) {
+    var anyNear = false;
+    desk.carts.forEach(function (c) {
+      var g = c.group, k = Math.min(1, dt * 9);
+      if (c.state === 'drag' && drag && drag.i === c.i) {
+        var prevX = g.position.x;
+        g.position.lerp(drag.target, Math.min(1, dt * 16));
+        var vx = (g.position.x - prevX) / Math.max(dt, 0.001);
+        tiltE.set(-0.15, 0, Math.max(-0.35, Math.min(0.35, -vx * 0.02)));
+        faceQ.setFromEuler(tiltE); g.quaternion.slerp(faceQ, Math.min(1, dt * 10));
+        if (nearSlot(drag.target)) anyNear = true;
+        return;
+      }
+      var dest = c.state === 'slot' ? tmpV.set(desk.slotWorld.x, desk.slotY, desk.slotWorld.z) : tmpV.copy(c.home);
+      var flat = Math.hypot(dest.x - g.position.x, dest.z - g.position.z);
+      var tgt = dest.clone();
+      if (flat > 0.25) tgt.y = Math.max(dest.y, 4.3);
+      g.position.lerp(tgt, k);
+      g.quaternion.slerp(c.state === 'slot' ? desk.slotQ : c.homeQ, k);
+    });
+    var glowT = anyNear ? 0.55 + Math.sin(t * 8) * 0.15 : (drag && drag.active ? 0.18 : 0);
+    desk.slotGlow.material.opacity += (glowT - desk.slotGlow.material.opacity) * Math.min(1, dt * 10);
+  }
+
+  function loop() {
+    var dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+    if (st.power && st.mode === 'boot') { st.boot += dt; if (st.boot > 3.4) { st.mode = st.loaded != null ? 'load' : 'home'; st.loadT = 0; st.catSlide = 0; } }
+    if (st.mode === 'load') { st.loadT += dt; if (st.loadT > 1.0) { st.cat = 0; st.idx[0] = st.loaded; st.mode = 'detail'; st.slide = 0; st.flash = 0.8; beep(990, 0.08); } }
+    if (!st.power) st.off += dt;
+    st.slide = Math.min(1, st.slide + dt * 5);
+    st.catSlide = Math.min(1, st.catSlide + dt * 5);
+    st.flash = Math.max(0, st.flash - dt * 4);
+
+    var hx = rig === desk ? -hover.x * 0.05 : hover.x * 0.18, hy = rig === desk ? hover.y * 0.025 : -hover.y * 0.1;
+    var freeze = drag && drag.active;
+    rig.yaw += ((down || freeze ? rig.yawT : rig.yawT + hx) - rig.yaw) * Math.min(1, dt * 4);
+    rig.pitch += ((down || freeze ? rig.pitchT : rig.pitchT + hy) - rig.pitch) * Math.min(1, dt * 4);
+    rig.place();
+    rig.update(t);
+    rig.buttons.forEach(function (b) { if (b.t > 0) b.t = Math.max(0, b.t - dt * 7); b.mesh.position[b.mesh.userData.axis] = b.mesh.userData.rest - b.t * b.mesh.userData.depth; });
+    if (rig === desk) updateCarts(dt, t);
+    drawScreen(t);
+    renderer.render(rig.scene, rig.camera);
+    requestAnimationFrame(loop);
+  }
+
+  function start() {
+    desk = makeDesk(); pocket = makePocket();
+    // Quiet Tab starts in the slot
+    var c0 = desk.carts[0]; c0.state = 'slot'; c0.group.position.set(desk.slotWorld.x, desk.slotY, desk.slotWorld.z); c0.group.quaternion.copy(desk.slotQ);
+    chooseRig(); bindInput(); loop();
+  }
+  var started = false;
+  function go1() { if (!started) { started = true; start(); } }
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(go1); setTimeout(go1, 1800); } else go1();
+})();
+</script>
+
+</body>
+</html>

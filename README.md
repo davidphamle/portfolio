@@ -28,6 +28,16 @@ The site follows the visitor's device setting until they press the sun/moon butt
 - **Reduced motion:** all animation is turned off and the 3D field draws one still frame.
 - **Checked with axe-core** against WCAG 2.0/2.1 A and AA plus best practices, with 0 violations. Also includes a skip link, 44px+ tap targets and screen-reader hints on links that open a new tab.
 
+## Play mode
+
+`play/index.html` (davidphamle.com/play/) is a 3D retro-console version of the portfolio, built with Three.js r128 from cdnjs. On desktop it's a desk scene: a CRT on a stand, an 8-bit console with a top-loading slot, a corded controller and a cartridge rack. On phones (narrower than 700px or portrait) it switches to a vertical pocket handheld.
+
+- **Browse:** controller D-pad, A, B, SELECT and START; tap the TV screen; or the keyboard (arrows, Enter, Esc, Space, Shift).
+- **Cartridges:** drag one from the rack into the slot to load that project, or drag the loaded one out to eject it. Clicking a cartridge also inserts or ejects it.
+- **Content:** projects, career, about and contact live in the `CATS` array near the top of the script. Career entries mirror the Experience section; company logos load from `logos/`, and entries without one show initials.
+- **Links:** START on a career entry opens the company site; Contact opens email, LinkedIn or the CV.
+- **Reduced motion:** ambient motion is cut back to a minimum. A screen-reader summary of the content sits in a visually hidden section.
+
 ## Company logos
 
 The logos on the case-study cards come from each company's own website, listed in `logos/sources.json`. The **Fetch company logos** GitHub Action (`.github/workflows/fetch-logos.yml`) downloads them into `logos/` and commits them. It runs whenever `sources.json` changes, or manually from the Actions tab. If a logo file is missing, its card shows the company's initials instead.
