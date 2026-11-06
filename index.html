@@ -156,6 +156,18 @@
   .btn.outline:hover { --btn-bg: var(--bone); --btn-line: var(--bone); --btn-fg: var(--void); }
   .btn:focus-visible, .car-btn:focus-visible { outline-offset: 3px; }
 
+  /* ---------- play mode shortcut (always visible) ---------- */
+  .btn.play-fab {
+    position: fixed; z-index: 55;
+    right: max(16px, env(safe-area-inset-right, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    transition: opacity .25s, transform .25s, visibility 0s;
+  }
+  .btn.play-fab svg { width: 20px; height: 20px; flex: none; }
+  /* Hidden while the hero's own Play mode button is on screen, so the two never overlap. */
+  .btn.play-fab.away { opacity: 0; transform: translateY(12px); visibility: hidden; pointer-events: none; transition: opacity .25s, transform .25s, visibility 0s .25s; }
+  @media (prefers-reduced-motion: reduce) { .btn.play-fab, .btn.play-fab.away { transition: none; transform: none; } }
+
   /* ---------- nav ---------- */
   .nav {
     position: fixed; inset: 0 0 auto 0; z-index: 50;
@@ -469,6 +481,8 @@
   </ul>
 </nav>
 
+<a class="btn sm play-fab" href="/play/" id="play-fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="11" rx="2"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="15.5" cy="12" r="1" fill="currentColor"/><circle cx="18" cy="13.5" r="1" fill="currentColor"/></svg>Play mode</a>
+
 <main id="top">
 
   <!-- HERO -->
@@ -592,6 +606,16 @@
 
 </main>
 
+<script>
+  // Floating Play mode button: hidden while the hero buttons (which include Play mode) are visible.
+  (function () {
+    var fab = document.getElementById("play-fab"), links = document.querySelector(".hero-links");
+    if (!fab || !links || !("IntersectionObserver" in window)) return;
+    new IntersectionObserver(function (entries) {
+      fab.classList.toggle("away", entries[0].isIntersecting);
+    }).observe(links);
+  })();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script>

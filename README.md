@@ -36,6 +36,7 @@ The site follows the visitor's device setting until they press the sun/moon butt
 - **Cartridges:** drag one from the rack into the slot to load that project, or drag the loaded one out to eject it. Clicking a cartridge also inserts or ejects it.
 - **Content:** projects, career, about and contact live in the `CATS` array near the top of the script. Career entries mirror the Experience section; company logos load from `logos/`, and entries without one show initials.
 - **Links:** START on a career entry opens the company site; Contact opens email, LinkedIn or the CV.
+- **Getting there:** a *Play* link in the nav, a *Play mode* button in the hero, and a floating *Play mode* button in the bottom-right corner that appears once the hero buttons scroll out of view. In play mode, *Classic view* returns to the homepage.
 - **Reduced motion:** ambient motion is cut back to a minimum. A screen-reader summary of the content sits in a visually hidden section.
 
 ## Company logos
