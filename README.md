@@ -32,6 +32,10 @@ The site follows the visitor's device setting until they press the sun/moon butt
 
 `play/index.html` (davidphamle.com/play/) is a 3D retro-console version of the portfolio, built with Three.js r128 from cdnjs. On desktop it's a desk scene: a CRT on a stand, an 8-bit console with a top-loading slot, a corded controller and a cartridge rack. On phones (narrower than 700px or portrait) it switches to a vertical pocket handheld.
 
+- **Look:** reflections come from a small softbox scene rendered once at load (no image assets), plus canvas-drawn wood, wall and poster textures and soft contact shadows.
+- **Camera (desktop):** *Room*, *Console* and *Screen* views from the switch in the bottom-right corner or keys `1` `2` `3`. Scroll zooms.
+- **HUD:** finish swatches, sound and a `?` button that shows or hides the controls card (remembered per browser). Hovering a button or cartridge shows a small tip.
+- **Phone:** the handheld sits between the top bar and a cartridge tray. Tap a cartridge in the tray (or the one in the top slot) to load a project, tap the loaded one to eject. The finish button beside the tray cycles finishes.
 - **Browse:** controller D-pad, A, B, SELECT and START; tap the TV screen; or the keyboard (arrows, Enter, Esc, Space, Shift).
 - **Cartridges:** drag one from the rack into the slot to load that project, or drag the loaded one out to eject it. Clicking a cartridge also inserts or ejects it.
 - **Content:** projects, career, about and contact live in the `CATS` array near the top of the script. Career entries mirror the Experience section; company logos load from `logos/`, and entries without one show initials.
