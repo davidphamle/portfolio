@@ -176,6 +176,10 @@ body.pocket .toast { top: calc(76px + env(safe-area-inset-top, 0px)); }
     <li>Product Manager, Credshare, Sep 2021 to May 2022</li>
     <li>Product Lead, KienGuru, Apr 2019 to Sep 2021</li>
   </ul>
+  <h2>Tech stack</h2>
+  <p>Figma, Power BI, Claude, Jira, Cursor, SQL, Snowflake, Braze, Confluence and Gemini.</p>
+  <h2>Three countries</h2>
+  <p>Australia (Adelaide, Melbourne, Perth), Vietnam (Ho Chi Minh City) and Hong Kong (remote team).</p>
   <p><a href="/">Open the classic portfolio</a></p>
 </section>
 
@@ -251,10 +255,27 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
         checks: [], tags: ['Product management', 'Data analytics', 'Product design', 'AI in the loop'], href: '/' },
       { title: 'Tech stack', kind: 'Equipment', status: 'Daily drivers', color: '#8cc0ff', sides: 6,
         desc: 'The tools I use to plan, design, analyse and ship.',
-        checks: [], tags: ['Figma', 'Power BI', 'Claude', 'Jira', 'Cursor', 'SQL', 'Snowflake', 'Braze', 'Confluence', 'Gemini'], href: '/#stack' },
+        checks: [], tags: ['Figma', 'Power BI', 'Claude', 'Jira', 'Cursor', 'SQL', 'Snowflake', 'Braze', 'Confluence', 'Gemini'], href: '/#stack',
+        shelf: { shape: 'coin', items: [
+          { name: 'Figma', sub: 'Design', icon: 'stack/figma.svg', color: '#F24E1E' },
+          { name: 'Power BI', sub: 'Dashboards', ini: 'BI', color: '#F2C811' },
+          { name: 'Claude', sub: 'AI partner', icon: 'stack/claude.svg', color: '#D97757' },
+          { name: 'Jira', sub: 'Delivery', icon: 'stack/jira.svg', color: '#0052CC' },
+          { name: 'Cursor', sub: 'AI code editor', icon: 'stack/cursor.svg', color: '#2b2b2b' },
+          { name: 'SQL', sub: 'Querying data', ini: 'SQL', color: '#4d9bff' },
+          { name: 'Snowflake', sub: 'Data warehouse', icon: 'stack/snowflake.svg', color: '#29B5E8' },
+          { name: 'Braze', sub: 'Customer messaging', ini: 'BZ', color: '#8e8e96' },
+          { name: 'Confluence', sub: 'Docs', icon: 'stack/confluence.svg', color: '#172B4D' },
+          { name: 'Gemini', sub: 'AI research', icon: 'stack/googlegemini.svg', color: '#8E75B2' }
+        ] } },
       { title: 'Three countries', kind: 'World map', status: '3 countries', color: '#8cc0ff', sides: 4,
         desc: 'Teams in Australia, Vietnam and Hong Kong, in the office and remote.',
-        checks: [], tags: ['Adelaide', 'Ho Chi Minh City', 'Remote'], href: '/#experience' }
+        checks: [], tags: ['Australia', 'Vietnam', 'Hong Kong'], href: '/#experience',
+        shelf: { shape: 'flag', items: [
+          { name: 'Australia', sub: 'Adelaide · Melbourne · Perth', icon: 'flags/au.svg', color: '#00247d' },
+          { name: 'Vietnam', sub: 'Ho Chi Minh City', icon: 'flags/vn.svg', color: '#da251d' },
+          { name: 'Hong Kong', sub: 'Remote team', icon: 'flags/hk.svg', color: '#ec1b2e' }
+        ] } }
     ]},
     { name: 'Contact', items: [
       { title: 'Email me', kind: 'davidphamle@gmail.com', status: 'Open to chat', color: '#62e08a', sides: 3,
@@ -795,7 +816,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
   }
 
   /* ================= Screen OS ================= */
-  var st = { power: true, tv: true, mode: 'boot', boot: 0, cat: 0, idx: [0, 0, 0, 0], scroll: [0, 0, 0, 0], slide: 1, catSlide: 1, flash: 0, off: 0, loaded: 0, loadT: 0 };
+  var st = { power: true, tv: true, shelf: 0, mode: 'boot', boot: 0, cat: 0, idx: [0, 0, 0, 0], scroll: [0, 0, 0, 0], slide: 1, catSlide: 1, flash: 0, off: 0, loaded: 0, loadT: 0 };
   var S, g2;
   function rr(x, y, w, h, r) { g2.beginPath(); g2.moveTo(x + r, y); g2.arcTo(x + w, y, x + w, y + h, r); g2.arcTo(x + w, y + h, x, y + h, r); g2.arcTo(x, y + h, x, y, r); g2.arcTo(x, y, x + w, y, r); g2.closePath(); }
   function lines(text, maxW) {
@@ -958,6 +979,105 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     hintBar(C ? [['A', 'Open'], ['←→', 'Tab'], ['SELECT', 'About']] : [['↑↓', 'Choose'], ['A', 'Open'], ['←→', 'Switch tab'], ['SELECT', 'About me']]);
   }
 
+  /* ================= 3D logo shelf (Tech stack, Three countries) =================
+     A small second Three.js scene of floating logo tokens on a ring. It renders into its own
+     canvas, which is drawn onto the CRT screen so it picks up the scanlines like everything else. */
+  var shelf = null;
+  function faceTex(it, shape) {
+    var w = shape === 'flag' ? 640 : 512, h = shape === 'flag' ? 480 : 512;
+    var c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d');
+    var tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding; tx.anisotropy = 4;
+    function initials() {
+      x.fillStyle = it.color; x.font = '900 ' + (it.ini.length > 2 ? 150 : 200) + 'px ' + DISPLAY; x.textAlign = 'center'; x.textBaseline = 'middle';
+      x.fillText(it.ini, w / 2, h / 2 + 10); tx.needsUpdate = true;
+    }
+    if (shape === 'coin') {
+      var g = x.createRadialGradient(w * 0.38, h * 0.32, 20, w / 2, h / 2, w * 0.62); g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#d9d6cf');
+      x.fillStyle = g; x.fillRect(0, 0, w, h);
+      x.strokeStyle = it.color; x.lineWidth = 18; x.beginPath(); x.arc(w / 2, h / 2, w / 2 - 22, 0, Math.PI * 2); x.stroke();
+    } else { x.fillStyle = it.color; x.fillRect(0, 0, w, h); }
+    if (it.icon) {
+      var im = new Image(); im.onload = function () {
+        if (shape === 'coin') x.drawImage(im, w * 0.25, h * 0.25, w * 0.5, h * 0.5); else x.drawImage(im, 0, 0, w, h);
+        tx.needsUpdate = true;
+      };
+      im.onerror = function () { if (it.ini || (it.ini = it.name.slice(0, 2).toUpperCase())) initials(); };
+      im.src = '../logos/' + it.icon;
+    } else if (it.ini) initials();
+    tx.needsUpdate = true; return tx;
+  }
+  function getShelf(def) {
+    if (shelf && shelf.def === def) return shelf;
+    if (!shelf) {
+      var r = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true });
+      r.setPixelRatio(1); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.setClearColor(0x000000, 0);
+      var sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 3, 0.1, 100);
+      sc.add(new THREE.HemisphereLight('#dfe8ff', '#1a1530', 0.9));
+      var key = new THREE.DirectionalLight('#ffffff', 1.3); key.position.set(-3, 4, 6); sc.add(key);
+      var rimL = new THREE.DirectionalLight('#7f9cff', 0.9); rimL.position.set(4, -1, -3); sc.add(rimL);
+      shelf = { r: r, scene: sc, cam: cam, group: null, def: null, tokens: [], pos: 0, w: 0, h: 0 };
+    }
+    if (shelf.group) { shelf.scene.remove(shelf.group); shelf.group.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); }
+    var grp = new THREE.Group(); shelf.scene.add(grp); shelf.group = grp; shelf.def = def; shelf.tokens = [];
+    def.items.forEach(function (it, i) {
+      var holder = new THREE.Group(), m;
+      var edge = new THREE.MeshStandardMaterial({ color: it.color, metalness: 0.55, roughness: 0.3 });
+      var face = new THREE.MeshBasicMaterial({ map: faceTex(it, def.shape), toneMapped: false });
+      if (def.shape === 'coin') {
+        m = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.26, 56), [edge, face, edge]); m.rotation.x = Math.PI / 2; m.rotation.y = Math.PI / 2; // cap UVs come in a quarter-turn off
+        var tilt = new THREE.Group(); tilt.add(m); holder.add(tilt); holder.userData.spin = tilt;
+      } else {
+        m = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.5, 0.16), [edge, edge, edge, edge, face, edge]);
+        var flagG = new THREE.Group(); flagG.add(m); holder.add(flagG); holder.userData.spin = flagG;
+      }
+      grp.add(holder); shelf.tokens.push(holder);
+    });
+    st.shelf = 0; shelf.pos = 0; // a different shelf starts at its first logo
+    return shelf;
+  }
+  function drawShelf(it, t, top, bottom, off) {
+    var W = S.W, n = it.shelf.items.length, cur = st.shelf % n, sh = getShelf(it.shelf);
+    var areaH = Math.max(160, bottom - top - 58), areaW = W - 48;
+    if (sh.w !== areaW || sh.h !== areaH) { sh.r.setSize(areaW, areaH, false); sh.cam.aspect = areaW / areaH; sh.cam.updateProjectionMatrix(); sh.w = areaW; sh.h = areaH; }
+    // ease the ring towards the chosen token along the shortest way round
+    var d = cur - sh.pos; d -= Math.round(d / n) * n;
+    sh.pos += REDUCED ? d : d * Math.min(1, 0.16);
+    var step = Math.PI * 2 / Math.max(n, 5), R = n <= 3 ? 3.4 : 4.6;
+    var face = it.shelf.shape === 'flag' ? 1.15 : 1;
+    sh.cam.position.set(0, 0.25, R + (n <= 3 ? 5.2 : 4.9)); sh.cam.lookAt(0, -0.05, R - 3);
+    sh.tokens.forEach(function (tk, i) {
+      var rel = i - sh.pos; rel -= Math.round(rel / n) * n;
+      var a = rel * step, bob = REDUCED ? 0 : Math.sin(t * 1.6 + i * 1.3) * 0.12;
+      tk.position.set(Math.sin(a) * R, bob, Math.cos(a) * R);
+      var near = Math.max(0, 1 - Math.abs(rel) * 0.55);
+      tk.scale.setScalar(face * (0.72 + near * 0.38));
+      tk.visible = Math.abs(rel) <= 2.6;
+      var sp = tk.userData.spin;
+      sp.rotation.y = -a * 0.6 + (REDUCED ? 0 : Math.sin(t * 0.9 + i) * 0.22 * (0.4 + near));
+      sp.rotation.x = REDUCED ? 0 : Math.sin(t * 1.2 + i * 0.7) * 0.08;
+      tk.traverse(function (o) { if (o.material && o.material.forEach) o.material.forEach(function (mm) { mm.transparent = true; mm.opacity = 0.35 + near * 0.65; }); });
+    });
+    sh.r.render(sh.scene, sh.cam);
+    g2.drawImage(sh.r.domElement, 24 + off, top, areaW, areaH);
+    // caption: name, role, position; arrows as tap targets
+    var c = it.shelf.items[cur], cy = top + areaH + 6;
+    g2.textAlign = 'center'; g2.textBaseline = 'top'; g2.fillStyle = '#ffffff'; g2.font = '900 ' + (S.compact ? 34 : 32) + 'px ' + DISPLAY;
+    g2.fillText(c.name.toUpperCase(), W / 2 + off, cy);
+    g2.fillStyle = '#d4d4cc'; g2.font = '600 ' + (S.compact ? 18 : 16) + 'px ' + MONO; g2.fillText(c.sub.toUpperCase() + '  ·  ' + (cur + 1) + '/' + n, W / 2 + off, cy + (S.compact ? 38 : 36));
+    g2.textAlign = 'left';
+    var ay = top + areaH / 2;
+    [-1, 1].forEach(function (s) {
+      var ax = s < 0 ? 24 : W - 24 - 56;
+      rr(ax, ay - 28, 56, 56, 28); g2.fillStyle = 'rgba(8,6,20,0.72)'; g2.fill(); g2.strokeStyle = it.color; g2.lineWidth = 2; g2.stroke();
+      g2.fillStyle = '#ecece4'; g2.font = '700 24px ' + MONO; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(s < 0 ? '◂' : '▸', ax + 28, ay + 1); g2.textAlign = 'left';
+    });
+    // tap zones: the left and right thirds step the ring (added last so they win over the open-item zone)
+    return function () {
+      hit(0, top, W / 3, areaH, function () { go('shelf', -1); });
+      hit(W * 2 / 3, top, W / 3, areaH, function () { go('shelf', 1); });
+    };
+  }
+
   function drawDetail(t) {
     var W = S.W, H = S.H, C = S.compact;
     bg(t); statusBar();
@@ -1014,16 +1134,20 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
         yy += rows[i].length * rowLh + 12;
       });
     }
+    var shelfHits = null;
+    if (it.shelf) shelfHits = drawShelf(it, t, topY + descH + 8, H - 54, off);
     var tx = 24 + off, ty = H - 54 - 52; g2.font = '700 16px ' + MONO; g2.textBaseline = 'middle';
-    for (var k = 0; k < it.tags.length; k++) {
+    for (var k = 0; k < (it.shelf ? 0 : it.tags.length); k++) {
       var tag = it.tags[k], w = g2.measureText(tag).width + 24; if (tx + w > W - 24) break;
       rr(tx, ty, w, 36, 8); g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fill(); g2.strokeStyle = it.color; g2.lineWidth = 2; g2.stroke();
       g2.fillStyle = '#ecece4'; g2.fillText(tag, tx + 12, ty + 19); tx += w + 8;
     }
     g2.globalAlpha = 1;
     var startLabel = it.href ? (/^mailto:/.test(it.href) ? 'Email' : (/^https?:/.test(it.href) ? 'Visit site' : 'Open')) : 'Case study';
-    hintBar(C ? [['B', 'Back'], ['START', startLabel], ['↑↓', 'Next']] : [['B', 'Back'], ['START', startLabel], ['↑↓', 'Prev / next'], ['←→', 'Tab']]);
+    if (it.shelf) hintBar(C ? [['B', 'Back'], ['←→', 'Browse'], ['↑↓', 'Next']] : [['B', 'Back'], ['←→', 'Browse'], ['↑↓', 'Prev / next'], ['START', startLabel]]);
+    else hintBar(C ? [['B', 'Back'], ['START', startLabel], ['↑↓', 'Next']] : [['B', 'Back'], ['START', startLabel], ['↑↓', 'Prev / next'], ['←→', 'Tab']]);
     hit(0, 130, W, H - 240, function () { go('start'); });
+    if (shelfHits) shelfHits();
   }
 
   function drawOff() {
@@ -1094,6 +1218,10 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       else if (action === 'start' || action === 'ok') { beep(990, 0.08); openItem(cat.items[st.idx[st.cat]]); }
       else if (action === 'up') { st.idx[st.cat] = (st.idx[st.cat] - 1 + n) % n; st.slide = 0; beep(520, 0.03); }
       else if (action === 'down') { st.idx[st.cat] = (st.idx[st.cat] + 1) % n; st.slide = 0; beep(520, 0.03); }
+      else if (cat.items[st.idx[st.cat]].shelf && (action === 'left' || action === 'right' || action === 'shelf')) {
+        var sn = cat.items[st.idx[st.cat]].shelf.items.length, dir = action === 'shelf' ? arg : (action === 'left' ? -1 : 1);
+        st.shelf = (st.shelf + dir + sn) % sn; beep(660 + dir * 60, 0.03);
+      }
       else if (action === 'left' || action === 'L') { st.cat = (st.cat - 1 + CATS.length) % CATS.length; st.mode = 'home'; st.catSlide = 0; beep(440, 0.04); }
       else if (action === 'right' || action === 'R') { st.cat = (st.cat + 1) % CATS.length; st.mode = 'home'; st.catSlide = 0; beep(440, 0.04); }
       else if (action === 'select') { st.cat = 2; st.idx[2] = 0; st.slide = 0; beep(780, 0.06); }
