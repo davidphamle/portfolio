@@ -163,7 +163,7 @@ body.pocket .toast { top: calc(76px + env(safe-area-inset-top, 0px)); }
 
 <section class="sr-only" aria-label="What is on this console">
   <h2>Projects</h2>
-  <p>Quiet Tab: a Chrome extension that re-skins LinkedIn job search as a calm, spreadsheet-style tool. Skill Forge: custom Claude skills. davidphamle.com: this portfolio.</p>
+  <p>Quiet Tab: a Chrome extension that re-skins LinkedIn job search as a calm, spreadsheet-style tool. Skill Forge: custom Claude skills. davidphamle.com: this portfolio. Sprint Rush: a playable side-scrolling delivery game with 10 sprints and a high score board.</p>
   <h2>Career</h2>
   <ul>
     <li>AI Product Manager, Amplify-now, Sep 2026 to now</li>
@@ -214,7 +214,11 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
         tags: ['GSAP', 'Three.js', 'Vercel'], href: '/' },
       { title: '??? Next build', kind: 'Locked', status: 'Coming soon', color: '#9a94b8', sides: 3,
         desc: 'A new project is in the works. This cartridge unlocks when it ships.',
-        listTitle: 'OBJECTIVES', checks: [['Next project', 0]], tags: ['Coming soon'], soon: true }
+        listTitle: 'OBJECTIVES', checks: [['Next project', 0]], tags: ['Coming soon'], soon: true },
+      { title: 'Sprint Rush', kind: 'Playable game', status: 'Press start', color: '#6dff8f', sides: 8, game: true,
+        desc: 'A side-scrolling delivery roguelike. Plan each sprint within capacity, dodge stakeholders, tech debt and the CEO pet project, and ship 10 sprints for a high score.',
+        listTitle: 'HOW TO PLAY', checks: [['Pick backlog items within capacity', 1], ['Up / down change lane, A jumps', 1], ['Every hit drops your last pick', 1], ['Hit the sprint goal or lose trust', 1], ['Take one artifact after each sprint', 1]],
+        tags: ['Roguelike', '10 sprints', 'High scores'] }
     ]},
     { name: 'Career', items: [
       { title: 'Amplify-now', kind: 'AI Product Manager', status: 'Sep 2026 – now', color: '#4d9bff', logo: 'amplify-now.png', ini: 'AN',
@@ -626,10 +630,12 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     mesh(new THREE.BoxGeometry(0.62, 0.3, 0.34), black, -4.3, 0.66, 1.9, scene);
 
     /* cartridge rack + cartridges */
-    contact(4.6, 5, scene, 10.2, -0.7, 0.7);
-    for (var tq = 0; tq < 4; tq++) {
-      var stepH = 0.3 + (3 - tq) * 0.6;
-      mesh(new THREE.BoxGeometry(3.6, stepH, 1.2), mat(tq % 2 ? '#2a2535' : '#24202e', { roughness: 0.5 }), 9.7 + tq * 0.3, stepH / 2, -2.5 + tq * 1.2, scene);
+    // one step per cartridge; extra cartridges extend the rack backwards so the front step stays put
+    var nC = CATS[0].items.length, rx0 = 9.7 - (nC - 4) * 0.3, rz0 = -2.5 - (nC - 4) * 1.2;
+    contact(4.6, 1.2 * nC + 0.4, scene, rx0 + (nC - 1) * 0.15, rz0 + (nC - 1) * 0.6, 0.7);
+    for (var tq = 0; tq < nC; tq++) {
+      var stepH = 0.3 + (nC - 1 - tq) * 0.6;
+      mesh(new THREE.BoxGeometry(3.6, stepH, 1.2), mat(tq % 2 ? '#2a2535' : '#24202e', { roughness: 0.5 }), rx0 + tq * 0.3, stepH / 2, rz0 + tq * 1.2, scene);
     }
     var rackLabel = decal('CARTRIDGES', 2.8, 0.36, { size: 54, color: '#bdbdb5' }); rackLabel.rotation.x = -Math.PI / 2; rackLabel.position.set(10.6, 0.31, 1.6); scene.add(rackLabel);
     var bodyGeo = roundedBox(2.8, 2.4, 0.45, 0.1, 0.04), cartMat = plastic('#2b2a33', { roughness: 0.5 }), ridgeMat = mat('#3a3944');
@@ -640,7 +646,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       var lbl = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshStandardMaterial({ map: cartLabel(it), roughness: 0.6, envMapIntensity: 0.4 }));
       lbl.position.set(0, 0.3, 0.228); g.add(lbl);
       g.userData.cart = i;
-      var home = new THREE.Vector3(9.7 + i * 0.3, 0.3 + (3 - i) * 0.6 + 1.2, -2.5 + i * 1.2);
+      var home = new THREE.Vector3(rx0 + i * 0.3, 0.3 + (nC - 1 - i) * 0.6 + 1.2, rz0 + i * 1.2);
       var homeQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.08, -0.32, 0));
       g.position.copy(home); g.quaternion.copy(homeQ);
       rig.carts.push({ i: i, group: g, home: home, homeQ: homeQ, state: 'rack' });
@@ -793,15 +799,20 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       var f = Math.max(0.5, (h - topPx - botPx) / h), span = BH + 1.0 + 0.9;
       rig.dist = Math.max(span / 2 / (half * f), (BW / 2 + 0.55) / (half * aspect));
       rig.cy = 0.5 + ((topPx - botPx) / h) * half * rig.dist;
+      // game framing: closer, from the lens down to the buttons, so the small screen is readable while playing
+      rig.distG = Math.max(11.5 / 2 / (half * f), 3.65 / (half * aspect));
+      rig.cyG = 0.6 + ((topPx - botPx) / h) * half * rig.distG;
       cam.updateProjectionMatrix();
     };
-    rig.place = function () { dev.rotation.y = rig.yaw; dev.rotation.x = rig.pitch; cam.position.set(0, rig.cy, rig.dist); cam.lookAt(0, rig.cy, 0); };
+    rig.zk = 0;
+    rig.place = function () { var k = rig.zk, d = rig.dist + (rig.distG - rig.dist) * k, cy = rig.cy + (rig.cyG - rig.cy) * k; dev.rotation.y = rig.yaw; dev.rotation.x = rig.pitch; cam.position.set(0, cy, d); cam.lookAt(0, cy, 0); };
     rig.setFinish = function (f) {
       shell.color.set(f.shell); bezelMat.color.set(f.bezel);
       rig.brandInks.forEach(function (m) { m.color.set(f.ink); }); rig.subInks.forEach(function (m) { m.color.set(f.sub); });
     };
     rig.setFinish({ shell: '#cfcbc4', bezel: '#211f29', ink: '#1a56f0', sub: '#3a3740' });
     rig.update = function (t, dt) {
+      var zt = st.power && st.mode === 'game' ? 1 : 0; rig.zk += (zt - rig.zk) * (REDUCED ? 1 : Math.min(1, (dt || 0.016) * 4));
       dev.position.y = Math.sin(t * 1.1) * 0.1 * M; dev.rotation.z = Math.sin(t * 0.7) * 0.007 * M;
       led.material.color.set(st.power ? '#ff3b30' : '#3a1210'); ledGlow.visible = st.power;
       bloom.material.opacity = st.power ? 0.065 + Math.sin(t * 3) * 0.008 : 0;
@@ -1143,12 +1154,416 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       g2.fillStyle = '#ecece4'; g2.fillText(tag, tx + 12, ty + 19); tx += w + 8;
     }
     g2.globalAlpha = 1;
-    var startLabel = it.href ? (/^mailto:/.test(it.href) ? 'Email' : (/^https?:/.test(it.href) ? 'Visit site' : 'Open')) : 'Case study';
+    var startLabel = it.game ? 'Play' : it.href ? (/^mailto:/.test(it.href) ? 'Email' : (/^https?:/.test(it.href) ? 'Visit site' : 'Open')) : 'Case study';
     if (it.shelf) hintBar(C ? [['B', 'Back'], ['←→', 'Browse'], ['↑↓', 'Next']] : [['B', 'Back'], ['←→', 'Browse'], ['↑↓', 'Prev / next'], ['START', startLabel]]);
     else hintBar(C ? [['B', 'Back'], ['START', startLabel], ['↑↓', 'Next']] : [['B', 'Back'], ['START', startLabel], ['↑↓', 'Prev / next'], ['←→', 'Tab']]);
     hit(0, 130, W, H - 240, function () { go('start'); });
     if (shelfHits) shelfHits();
   }
+
+  /* ================= Cartridge game: Sprint Rush =================
+     A side-scrolling delivery roguelike. Ten sprints. Each sprint: plan (pick backlog items within capacity),
+     run (dodge in three lanes, every hit drops an item), review (score + sprint goal), retro (pick an artifact).
+     Tuning lives in the tables at the top: TYPES, NAMES, REQS, ARTS, OBS and the numbers in speed() / begin(). */
+  var GAME = (function () {
+    var KEY = 'dpl8-sprint-rush-scores', G = null, scores = null, PX = 200, GREEN = '#6dff8f';
+    var TYPES = { feat: { n: 'Feature', c: '#4d9bff', d: 12 }, bug: { n: 'Bug fix', c: '#ff5f6d', d: 9 }, debt: { n: 'Tech debt', c: '#ffb02e', d: 7 }, ux: { n: 'Research', c: '#b48cff', d: 10 } };
+    var NAMES = {
+      feat: ['Dark mode', 'SSO login', 'CSV export', 'AI summary', 'Bulk edit', 'Notifications', 'Dashboard v2', 'Onboarding flow', 'Saved filters', 'Public API'],
+      bug: ['Login loop', 'Timezone bug', '500 on save', 'Broken invite link', 'Double charge', 'Stuck spinner'],
+      debt: ['Upgrade framework', 'Refactor billing', 'Retire legacy API', 'Add test coverage', 'Fix flaky CI'],
+      ux: ['User interviews', 'Usability test', 'A/B test', 'Customer survey']
+    };
+    function sum(a, f) { return a.reduce(function (s, i) { return s + i[f]; }, 0); }
+    function cnt(d, k) { return d.filter(function (i) { return i.k === k; }).length; }
+    function has() { var ks = arguments; return function (d) { for (var i = 0; i < ks.length; i++) if (!cnt(d, ks[i])) return false; return true; }; }
+    function val(n) { return function (d) { return sum(d, 'v') >= n; }; }
+    var REQS = [
+      { t: 'Deliver at least 1 item', ok: function (d) { return d.length >= 1; } },
+      { t: 'Deliver a Bug fix', ok: has('bug') },
+      { t: 'Deliver 40+ value', ok: val(40) },
+      { t: 'Deliver a Tech debt item', ok: has('debt') },
+      { t: 'Deliver 2 Features', ok: function (d) { return cnt(d, 'feat') >= 2; } },
+      { t: 'Deliver a Bug fix and Tech debt', ok: has('bug', 'debt') },
+      { t: 'Deliver 3 or more items', ok: function (d) { return d.length >= 3; } },
+      { t: 'Deliver 65+ value', ok: val(65) },
+      { t: 'Deliver a Feature, a Bug fix and Tech debt', ok: has('feat', 'bug', 'debt') },
+      { t: 'Launch day: deliver 80+ value', ok: val(80) }
+    ];
+    var ARTS = [
+      { id: 'dod', n: 'Definition of Done', d: 'Blocks the first hit of every sprint.', max: 3 },
+      { id: 'team', n: 'Bigger Team', d: '+3 capacity points.', max: 3 },
+      { id: 'cicd', n: 'CI/CD Pipeline', d: 'Change lanes almost twice as fast.', max: 1 },
+      { id: 'road', n: 'Roadmap', d: 'You saw it coming. Everything moves 12% slower.', max: 2 },
+      { id: 'no', n: 'Say-No Card', d: 'Press B to clear the screen. One use per sprint.', max: 3 },
+      { id: 'coffee', n: 'Coffee Machine', d: 'Coffee is worth double.', max: 1 },
+      { id: 'tests', n: 'Test Suite', d: 'Bugs get squashed on contact.', max: 1 },
+      { id: 'map', n: 'Stakeholder Map', d: 'Half as many stakeholders show up.', max: 1 },
+      { id: 'goal', n: 'Sprint Goal', d: 'Double bonus for hitting the sprint goal.', max: 1 },
+      { id: 'poker', n: 'Planning Poker', d: 'Every item weighs 1 point less.', max: 1 },
+      { id: 'flags', n: 'Feature Flags', d: 'Jumps last longer.', max: 1 },
+      { id: 'sponsor', n: 'Exec Sponsor', d: '+1 trust, right now.', max: 2 }
+    ];
+    // hw: half width, vx: extra speed toward the player, jump: can be jumped, span: lanes covered, from: first sprint it appears
+    var OBS = {
+      stake: { hw: 30, vx: 70, from: 1, n: 'Stakeholder' }, debt: { hw: 30, vx: 0, jump: 1, from: 1, n: 'Tech debt' },
+      bug: { hw: 22, vx: 140, jump: 1, from: 2, n: 'Bug' }, meet: { hw: 62, vx: 0, span: 2, from: 4, n: 'Meeting' },
+      creep: { hw: 34, vx: 30, from: 5, n: 'Scope creep' }, fire: { hw: 30, vx: 380, warn: 0.9, from: 6, n: 'Prod incident' },
+      ceo: { hw: 46, vx: 110, from: 7, n: 'CEO pet project' }
+    };
+    var SHOUTS = ['ASAP!', 'URGENT', 'QUICK Q?', 'BY EOD?'];
+    function rand(a) { return a[Math.floor(Math.random() * a.length)]; }
+    function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
+    function loadScores() {
+      if (scores) return; try { scores = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+      if (!Array.isArray(scores)) scores = [{ n: 'CEO', s: 2400 }, { n: 'CTO', s: 1800 }, { n: 'DEV', s: 1200 }, { n: 'UXR', s: 700 }, { n: 'INT', s: 300 }];
+    }
+    function start() { loadScores(); G = { scene: 'title' }; }
+    function quit() { st.mode = 'home'; st.cat = 0; st.catSlide = 0; beep(300, 0.08); }
+    function newRun() { G = { scene: 'plan', sprint: 1, score: 0, trust: 3, arts: {}, note: null }; plan(); beep(880, 0.08); }
+    function cap() { return 8 + 3 * (G.arts.team || 0); }
+    function chosen() { return G.backlog.filter(function (i) { return i.on; }).sort(function (a, b) { return a.ord - b.ord; }); }
+    function note(s) { G.note = { s: s, t: 1.6 }; }
+    function plan() {
+      var out = [], add = function (k, ws, n) {
+        ws = shuffle(ws.slice()); var names = shuffle(NAMES[k].slice());
+        for (var i = 0; i < n; i++) out.push({ k: k, n: names[i], w: Math.max(1, ws[i] - (G.arts.poker ? 1 : 0)), v: ws[i] * TYPES[k].d + Math.floor(Math.random() * 4), on: false });
+      };
+      add('feat', [2, 3, 4, 5], 3); add('bug', [1, 2], 2); add('debt', [2, 3], 1); add('ux', [1, 2, 3], 1);
+      G.backlog = out; G.cur = 0; G.scene = 'plan';
+    }
+    function toggle(i) {
+      var it = G.backlog[i]; G.cur = i;
+      if (!it.on && sum(chosen(), 'w') + it.w > cap()) { note('Over capacity'); beep(180, 0.08); return; }
+      it.on = !it.on; it.ord = G.seq = (G.seq || 0) + 1; beep(it.on ? 660 : 420, 0.04);
+    }
+    function speed() { return (290 + G.sprint * 24) * Math.pow(0.88, G.arts.road || 0); }
+    function begin() {
+      var cargo = chosen(); if (!cargo.length) { note('Pick at least 1 item'); beep(180, 0.08); return; }
+      G.cargo = cargo; G.dropped = [];
+      G.r = { time: 0, dur: 24 + G.sprint * 1.6, dist: 0, lane: 1, y: 1, jump: 0, inv: 0, obs: [], cups: [], spawn: 1.4, cup: 1.2, shield: G.arts.dod || 0, nos: G.arts.no || 0, coffee: 0, shake: 0, flash: 0, load: sum(cargo, 'w') / cap(), pause: false };
+      G.scene = 'run'; beep(990, 0.1);
+    }
+    function spawn() {
+      var r = G.r, s = G.sprint, pool = [];
+      for (var k in OBS) if (OBS[k].from <= s) { pool.push(k); if (k === 'stake' || k === 'debt') pool.push(k); }
+      if (s >= 10) pool.push('ceo', 'ceo');
+      var k2 = rand(pool); if (k2 === 'stake' && G.arts.map && Math.random() < 0.5) k2 = 'debt';
+      var d = OBS[k2], lane = Math.floor(Math.random() * (d.span ? 2 : 3));
+      r.obs.push({ k: k2, d: d, x: 1040, lane: lane, ly: lane, warn: d.warn || 0, tick: 0.6, say: rand(SHOUTS), ph: Math.random() * 6 });
+      r.spawn = Math.max(0.5, 1.3 - s * 0.075) * (0.75 + Math.random() * 0.5); if (d.span) r.spawn = Math.max(r.spawn, 0.85);
+    }
+    function hurt(o) {
+      var r = G.r; o.dead = true;
+      if (o.k === 'bug' && G.arts.tests) { r.coffee += 2; beep(700, 0.04); return; }
+      if (r.inv > 0) return;
+      r.inv = 1.3; r.shake = 0.35;
+      if (r.shield > 0) { r.shield--; note('Definition of Done held'); beep(520, 0.1); return; }
+      var lost = G.cargo.pop(); G.dropped.push(lost); note(o.d.n + ': dropped ' + lost.n); beep(140, 0.18);
+      if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
+      if (!G.cargo.length) endSprint();
+    }
+    function sayNo() {
+      var r = G.r; if (r.nos <= 0) { beep(180, 0.05); return; }
+      r.nos--; r.obs.forEach(function (o) { if (o.x < 1000) o.dead = true; }); r.flash = 0.5; note('"No."'); beep(220, 0.2);
+    }
+    function endSprint() {
+      var d = G.cargo, met = d.length > 0 && REQS[G.sprint - 1].ok(d), value = sum(d, 'v'), bonus = met ? 20 * G.sprint * (G.arts.goal ? 2 : 1) : 0;
+      G.rev = { met: met, value: value, bonus: bonus, coffee: G.r.coffee, total: value + bonus + G.r.coffee };
+      G.score += G.rev.total; if (!met) G.trust--;
+      G.scene = 'review'; beep(met ? 990 : 200, 0.15);
+    }
+    function retro() {
+      var pool = shuffle(ARTS.filter(function (a) { return (G.arts[a.id] || 0) < a.max; }));
+      G.choices = pool.slice(0, 3); G.cur = 1; G.scene = 'retro';
+    }
+    function take(i) {
+      var a = G.choices[i]; G.arts[a.id] = (G.arts[a.id] || 0) + 1; if (a.id === 'sponsor') G.trust++;
+      G.sprint++; beep(880, 0.1); plan();
+    }
+    function finish(win) { G.win = win; G.scene = 'name'; G.name = [0, 0, 0]; G.cur = 0; beep(win ? 1200 : 160, 0.3); }
+    function save() {
+      var n = G.name.map(function (c) { return String.fromCharCode(65 + c); }).join(''), e = { n: n, s: G.score };
+      scores.push(e); scores.sort(function (a, b) { return b.s - a.s; }); scores = scores.slice(0, 10); G.rank = scores.indexOf(e);
+      try { localStorage.setItem(KEY, JSON.stringify(scores)); } catch (err) {}
+      G.scene = 'board'; beep(990, 0.12);
+    }
+
+    function input(a) {
+      if (!G) start();
+      var sc = G.scene, go2 = a === 'ok' || a === 'start';
+      if (a === 'select' && sc !== 'title' && sc !== 'name') { start(); beep(300, 0.08); return; }
+      if (sc === 'title') { if (go2) newRun(); else if (a === 'back') quit(); else if (a === 'select') { G.scene = 'board'; G.rank = -1; } }
+      else if (sc === 'plan') {
+        var n = G.backlog.length;
+        if (a === 'up') { G.cur = (G.cur - 1 + n) % n; beep(520, 0.03); } else if (a === 'down') { G.cur = (G.cur + 1) % n; beep(520, 0.03); }
+        else if (a === 'ok') toggle(G.cur); else if (a === 'start') begin();
+      }
+      else if (sc === 'run') {
+        var r = G.r;
+        if (a === 'start') { r.pause = !r.pause; beep(440, 0.05); return; }
+        if (r.pause) { if (a === 'ok') r.pause = false; return; }
+        if (a === 'up' && r.lane > 0) { r.lane--; beep(600, 0.02); } else if (a === 'down' && r.lane < 2) { r.lane++; beep(560, 0.02); }
+        else if (a === 'ok' && r.jump <= 0) { r.jump = jumpLen(); beep(760, 0.06); } else if (a === 'back') sayNo();
+      }
+      else if (sc === 'review') { if (go2) { if (G.trust <= 0) finish(false); else if (G.sprint >= 10) finish(true); else retro(); } }
+      else if (sc === 'retro') {
+        var m = G.choices.length;
+        if (a === 'left' || a === 'up') { G.cur = (G.cur - 1 + m) % m; beep(520, 0.03); } else if (a === 'right' || a === 'down') { G.cur = (G.cur + 1) % m; beep(520, 0.03); }
+        else if (go2) take(G.cur);
+      }
+      else if (sc === 'name') {
+        if (a === 'up') G.name[G.cur] = (G.name[G.cur] + 1) % 26; else if (a === 'down') G.name[G.cur] = (G.name[G.cur] + 25) % 26;
+        else if (a === 'left' || a === 'back') G.cur = Math.max(0, G.cur - 1);
+        else if (a === 'right' || a === 'ok') { if (G.cur < 2) G.cur++; else if (a === 'ok') save(); }
+        else if (a === 'start') save();
+        beep(520, 0.03);
+      }
+      else if (sc === 'board') { if (go2) newRun(); else if (a === 'back') { if (G.rank === -1 && !G.sprint) start(); else quit(); } }
+    }
+    function jumpLen() { return G.arts.flags ? 0.95 : 0.7; }
+    function airborne() { var r = G.r, j = jumpLen(); return r.jump > j * 0.05 && r.jump < j * 0.92; }
+
+    function update(dt) {
+      if (!G) return;
+      if (G.note) { G.note.t -= dt; if (G.note.t <= 0) G.note = null; }
+      if (G.scene !== 'run' || G.r.pause) return;
+      var r = G.r, sp = speed();
+      r.time += dt; r.dist += sp * dt;
+      var rate = 1 / (0.13 * (1 + 0.9 * r.load) * (G.arts.cicd ? 0.55 : 1)), dy = r.lane - r.y;
+      r.y += Math.max(-rate * dt, Math.min(rate * dt, dy));
+      r.jump = Math.max(0, r.jump - dt); r.inv = Math.max(0, r.inv - dt); r.shake = Math.max(0, r.shake - dt); r.flash = Math.max(0, r.flash - dt);
+      r.spawn -= dt; if (r.spawn <= 0 && r.time < r.dur - 1.6) spawn();
+      r.cup -= dt; if (r.cup <= 0 && r.time < r.dur - 1) { r.cups.push({ x: 1040, lane: Math.floor(Math.random() * 3) }); r.cup = 1.5 + Math.random() * 1.2; }
+      for (var i = 0; i < r.obs.length; i++) {
+        var o = r.obs[i]; if (o.dead) continue;
+        if (o.warn > 0) { o.warn -= dt; continue; }
+        o.x -= (sp + o.d.vx) * dt; o.ly += (o.lane - o.ly) * Math.min(1, dt * 6);
+        if (o.k === 'creep' && !o.moved && o.x < 640) { o.moved = true; o.lane = o.lane === 1 ? rand([0, 2]) : 1; }
+        if (o.k === 'ceo' && o.x > 400) { o.tick -= dt; if (o.tick <= 0) { o.tick = 0.75; o.lane += Math.sign(r.lane - o.lane); } }
+        if (o.x < -120) { o.dead = true; continue; }
+        var inLane = o.d.span ? (r.y > o.ly - 0.55 && r.y < o.ly + 1.55) : Math.abs(o.ly - r.y) < 0.55;
+        if (inLane && Math.abs(o.x - PX) < o.d.hw + (o.d.jump ? 24 : 38) && !(o.d.jump && airborne())) { hurt(o); if (G.scene !== 'run') return; }
+      }
+      r.obs = r.obs.filter(function (o) { return !o.dead; });
+      r.cups = r.cups.filter(function (c) {
+        c.x -= sp * dt;
+        if (Math.abs(c.x - PX) < 52 && Math.abs(c.lane - r.y) < 0.5) { r.coffee += G.arts.coffee ? 10 : 5; beep(1100, 0.04); return false; }
+        return c.x > -60;
+      });
+      if (r.time >= r.dur) endSprint();
+    }
+
+    /* ---------- drawing ---------- */
+    function px(x) { return x * S.W / 960; }
+    function F(w, size, fam) { g2.font = w + ' ' + Math.round(size * (S.compact ? 1.4 : 1)) + 'px ' + (fam || MONO); }
+    function txt(s, x, y, col, al) { g2.fillStyle = col; g2.textAlign = al || 'left'; g2.fillText(s, x, y); g2.textAlign = 'left'; }
+    function box(x, y, w, h, r, fill, stroke, lw) { rr(x, y, w, h, r); if (fill) { g2.fillStyle = fill; g2.fill(); } if (stroke) { g2.strokeStyle = stroke; g2.lineWidth = lw || 3; g2.stroke(); } }
+    function fit(s, maxW) { while (s.length > 3 && g2.measureText(s).width > maxW) s = s.slice(0, -2); return s; }
+    function hud() {
+      var W = S.W; g2.fillStyle = 'rgba(0,0,0,0.55)'; g2.fillRect(0, 0, W, 56);
+      F('900', 30, DISPLAY); txt('SPRINT ' + G.sprint + '/10', 20, 30, GREEN);
+      F('700', 22); txt(String(G.score), W - 20, 30, '#ecece4', 'right');
+      F('700', 22); var h = ''; for (var i = 0; i < Math.max(0, G.trust); i++) h += '♥ '; txt(h.trim(), W / 2, 30, '#ff5f6d', 'center');
+    }
+    function noteBar() {
+      if (!G.note) return; var W = S.W, H = S.H; F('700', 20); var w = g2.measureText(G.note.s).width + 36;
+      box(W / 2 - w / 2, H - 54 - 58, w, 44, 10, '#ecece4'); txt(G.note.s, W / 2, H - 54 - 35, '#13102a', 'center');
+    }
+    function pm(x, base, u, t, cargo, ghost) {
+      g2.globalAlpha = ghost ? 0.45 : 1;
+      var run = Math.sin(t * 16) * u * 0.1;
+      // PM
+      g2.fillStyle = '#1b1830'; g2.fillRect(x - u * 0.78, base - u * 0.3, u * 0.12, u * 0.3 + run * 0.4); g2.fillRect(x - u * 0.62, base - u * 0.3, u * 0.12, u * 0.3 - run * 0.4);
+      box(x - u * 0.84, base - u * 0.78, u * 0.38, u * 0.52, u * 0.08, '#1a56f0');
+      g2.fillStyle = '#f2c9a0'; g2.beginPath(); g2.arc(x - u * 0.65, base - u * 0.94, u * 0.17, 0, 7); g2.fill();
+      g2.fillStyle = '#2a1e19'; g2.fillRect(x - u * 0.83, base - u * 1.12, u * 0.34, u * 0.1);
+      g2.strokeStyle = '#1a56f0'; g2.lineWidth = u * 0.09; g2.beginPath(); g2.moveTo(x - u * 0.5, base - u * 0.62); g2.lineTo(x - u * 0.3, base - u * 0.52); g2.stroke();
+      // cart
+      box(x - u * 0.34, base - u * 0.42, u * 0.92, u * 0.26, u * 0.05, '#cfcbc4');
+      g2.fillStyle = '#09090c'; [x - u * 0.16, x + u * 0.4].forEach(function (wx) { g2.beginPath(); g2.arc(wx, base - u * 0.08, u * 0.1, 0, 7); g2.fill(); });
+      var y = base - u * 0.42;
+      cargo.forEach(function (it) { var bw = u * (0.34 + it.w * 0.1), bh = u * 0.2; y -= bh; box(x + u * 0.12 - bw / 2, y, bw, bh - 2, 3, TYPES[it.k].c, '#13102a', 2); });
+      g2.globalAlpha = 1;
+    }
+    function drawObs(o, base, lh, t) {
+      var x = px(o.x), u = lh * 0.62, k = o.k;
+      if (o.warn > 0) {
+        if (Math.floor(t * 8) % 2) { var wx = S.W - 46; g2.fillStyle = '#ff7a2f'; g2.beginPath(); g2.moveTo(wx, base - u * 0.9); g2.lineTo(wx + u * 0.42, base - u * 0.15); g2.lineTo(wx - u * 0.42, base - u * 0.15); g2.closePath(); g2.fill(); F('900', 26, DISPLAY); txt('!', wx, base - u * 0.42, '#13102a', 'center'); }
+        return;
+      }
+      if (k === 'stake') {
+        box(x - u * 0.2, base - u * 0.8, u * 0.4, u * 0.8, u * 0.08, '#3a3740'); g2.fillStyle = '#d8332b'; g2.fillRect(x - u * 0.04, base - u * 0.74, u * 0.08, u * 0.34);
+        g2.fillStyle = '#e9b98c'; g2.beginPath(); g2.arc(x, base - u * 0.97, u * 0.18, 0, 7); g2.fill();
+        F('700', 15); var sw = g2.measureText(o.say).width + 18; box(x - sw - u * 0.1, base - u * 1.5, sw, u * 0.4, 8, '#ecece4'); txt(o.say, x - sw / 2 - u * 0.1, base - u * 1.29, '#13102a', 'center');
+      } else if (k === 'debt') {
+        g2.fillStyle = '#8a5a1a'; g2.beginPath(); g2.moveTo(x - u * 0.6, base);
+        for (var i = 0; i <= 6; i++) g2.lineTo(x - u * 0.6 + i * u * 0.2, base - (i % 2 ? u * 0.5 : u * 0.18) - (i === 3 ? u * 0.14 : 0));
+        g2.lineTo(x + u * 0.6, base); g2.closePath(); g2.fill(); g2.strokeStyle = '#ffb02e'; g2.lineWidth = 3; g2.stroke();
+        F('700', 13); txt('TECH DEBT', x, base + u * 0.16, '#ffb02e', 'center');
+      } else if (k === 'bug') {
+        var wob = Math.sin(t * 20 + o.ph) * 3; g2.strokeStyle = '#ff5f6d'; g2.lineWidth = 3;
+        for (var l = -1; l <= 1; l++) { g2.beginPath(); g2.moveTo(x + l * u * 0.14, base - u * 0.2); g2.lineTo(x + l * u * 0.22, base + wob * (l ? 1 : -1) * 0.3); g2.stroke(); }
+        g2.fillStyle = '#ff5f6d'; g2.beginPath(); g2.ellipse(x, base - u * 0.26, u * 0.3, u * 0.2, 0, 0, 7); g2.fill();
+        g2.fillStyle = '#13102a'; g2.fillRect(x - u * 0.2, base - u * 0.32, u * 0.07, u * 0.07);
+      } else if (k === 'meet') {
+        var top = base - lh * 0.86, hgt = lh * 1.82;
+        box(x - px(60), top, px(120), hgt, 10, '#5b3fb0', '#b48cff'); g2.fillStyle = '#b48cff'; g2.fillRect(x - px(60), top, px(120), u * 0.3);
+        g2.save(); g2.translate(x, top + hgt / 2 + u * 0.1); g2.rotate(-Math.PI / 2); F('900', 30, DISPLAY); txt('MEETING', 0, 0, '#ecece4', 'center'); g2.restore();
+      } else if (k === 'creep') {
+        var s2 = 1 + Math.sin(t * 5 + o.ph) * 0.08; g2.fillStyle = '#39c26b'; g2.beginPath(); g2.ellipse(x, base - u * 0.36, u * 0.48 * s2, u * 0.38 / s2, 0, 0, 7); g2.fill();
+        g2.fillStyle = '#13102a'; g2.fillRect(x - u * 0.2, base - u * 0.46, u * 0.1, u * 0.12); g2.fillRect(x + u * 0.06, base - u * 0.46, u * 0.1, u * 0.12);
+        F('700', 13); txt('SCOPE CREEP', x, base + u * 0.16, '#6dff8f', 'center');
+      } else if (k === 'fire') {
+        var fl = Math.sin(t * 30) * u * 0.06; g2.fillStyle = '#ff7a2f'; g2.beginPath(); g2.moveTo(x - u * 0.34, base); g2.quadraticCurveTo(x - u * 0.5, base - u * 0.5, x - u * 0.1, base - u * 0.9 - fl); g2.quadraticCurveTo(x, base - u * 0.5, x + u * 0.2, base - u * 0.7 + fl); g2.quadraticCurveTo(x + u * 0.5, base - u * 0.3, x + u * 0.34, base); g2.closePath(); g2.fill();
+        g2.fillStyle = '#ffd23f'; g2.beginPath(); g2.ellipse(x, base - u * 0.22, u * 0.18, u * 0.24, 0, 0, 7); g2.fill(); F('900', 16); txt('P1', x, base - u * 0.2, '#13102a', 'center');
+      } else if (k === 'ceo') {
+        var bob = Math.sin(t * 6 + o.ph) * u * 0.06, cy = base - u * 0.5 + bob;
+        g2.fillStyle = '#ff7a2f'; g2.beginPath(); g2.moveTo(x + u * 0.6, cy - u * 0.12); g2.lineTo(x + u * 1.0 + Math.sin(t * 40) * 6, cy); g2.lineTo(x + u * 0.6, cy + u * 0.12); g2.fill();
+        box(x - u * 0.6, cy - u * 0.24, u * 1.2, u * 0.48, u * 0.24, '#ffd23f', '#b8860b'); g2.fillStyle = '#13102a'; g2.beginPath(); g2.arc(x - u * 0.3, cy, u * 0.1, 0, 7); g2.fill();
+        F('900', 15); txt('CEO', x + u * 0.12, cy + 1, '#13102a', 'center'); F('700', 13); txt('PET PROJECT', x, base + u * 0.16, '#ffd23f', 'center');
+      }
+    }
+    function drawRun(t) {
+      var W = S.W, H = S.H, r = G.r, top = 110, bot = H - 60, lh = (bot - top) / 3, u = lh * 0.62;
+      var base = function (l) { return top + (l + 1) * lh - lh * 0.2; };
+      g2.fillStyle = '#100d24'; g2.fillRect(0, 0, W, H);
+      g2.save(); if (r.shake > 0) g2.translate((Math.random() - 0.5) * 10 * r.shake * M, (Math.random() - 0.5) * 10 * r.shake * M);
+      for (var l = 0; l < 3; l++) { g2.fillStyle = l % 2 ? '#1a1638' : '#15122e'; g2.fillRect(0, top + l * lh, W, lh); }
+      g2.fillStyle = 'rgba(140,192,255,0.3)'; var off = px(r.dist) % 80;
+      for (var l2 = 1; l2 < 3; l2++) for (var dx = -off; dx < W; dx += 80) g2.fillRect(dx, top + l2 * lh - 2, 40, 4);
+      // day markers and the release line
+      var dayLen = speed() * r.dur / 10; F('700', 14);
+      for (var d = 1; d <= 10; d++) {
+        var mx = px(PX + d * dayLen - r.dist); if (mx < -60 || mx > W + 60) continue;
+        if (d === 10) { for (var c = 0; c < 12; c++) { g2.fillStyle = c % 2 ? '#ecece4' : '#13102a'; g2.fillRect(mx, top + c * (bot - top) / 12, 16, (bot - top) / 12); g2.fillStyle = c % 2 ? '#13102a' : '#ecece4'; g2.fillRect(mx + 16, top + c * (bot - top) / 12, 16, (bot - top) / 12); } }
+        else { g2.fillStyle = 'rgba(236,236,228,0.14)'; g2.fillRect(mx, top, 3, bot - top); txt('DAY ' + (d + 1), mx + 8, top + 14, 'rgba(236,236,228,0.5)'); }
+      }
+      r.cups.forEach(function (cu) { var cx = px(cu.x), cb = base(cu.lane) - u * 0.3 + Math.sin(t * 5 + cu.x * 0.01) * 4; box(cx - u * 0.14, cb - u * 0.16, u * 0.28, u * 0.32, 4, '#ecece4'); g2.strokeStyle = '#ecece4'; g2.lineWidth = 3; g2.beginPath(); g2.arc(cx + u * 0.16, cb, u * 0.09, -1.4, 1.4); g2.stroke(); g2.fillStyle = '#6b4a2f'; g2.fillRect(cx - u * 0.1, cb - u * 0.12, u * 0.2, u * 0.07); });
+      var jl = jumpLen(), jy = r.jump > 0 ? Math.sin((1 - r.jump / jl) * Math.PI) * lh * 0.55 : 0, pb = top + (r.y + 1) * lh - lh * 0.2;
+      for (var ln = 0; ln < 3; ln++) {
+        r.obs.forEach(function (o) { if (Math.round(o.ly) === ln) drawObs(o, base(o.ly), lh, t); });
+        if (Math.round(r.y) === ln) {
+          g2.fillStyle = 'rgba(0,0,0,0.35)'; g2.beginPath(); g2.ellipse(px(PX), pb + 4, u * 0.7 * (1 - jy / lh * 0.5), u * 0.1, 0, 0, 7); g2.fill();
+          pm(px(PX), pb - jy, u, r.pause ? 0 : t, G.cargo, r.inv > 0 && Math.floor(t * 12) % 2 === 0);
+        }
+      }
+      g2.restore();
+      if (r.flash > 0) { g2.fillStyle = 'rgba(255,255,255,' + r.flash + ')'; g2.fillRect(0, top, W, bot - top); }
+      hud();
+      // sprint progress + charges
+      g2.fillStyle = 'rgba(0,0,0,0.4)'; g2.fillRect(0, 56, W, 54);
+      var p = Math.min(1, r.time / r.dur); F('700', 17); txt('DAY ' + Math.min(10, Math.floor(p * 10) + 1) + '/10', 20, 84, '#ecece4');
+      var bx = S.compact ? 170 : 140, bw = W - bx - (S.compact ? 190 : 230); box(bx, 74, bw, 20, 5, null, '#ecece4', 2); g2.fillStyle = GREEN; g2.fillRect(bx + 4, 78, (bw - 8) * p, 12);
+      txt('DoD ' + r.shield + '  NO ' + r.nos, W - 20, 84, r.shield + r.nos ? '#8cc0ff' : '#6a6672', 'right');
+      // goal strip
+      g2.fillStyle = 'rgba(0,0,0,0.6)'; g2.fillRect(0, H - 54, W, 54); F('700', 17);
+      var ok = REQS[G.sprint - 1].ok(G.cargo); txt(fit((ok ? '✓ ' : 'GOAL: ') + REQS[G.sprint - 1].t, W - (S.compact ? 40 : 330)), 20, H - 27, ok ? GREEN : '#ffb02e');
+      if (!S.compact) { F('500', 15); txt('↑↓ lane   A jump   B say no', W - 20, H - 27, '#bdbdb5', 'right'); }
+      noteBar();
+      hit(0, top, W, lh, function () { input('up'); }); hit(0, top + lh, W, lh, function () { input('ok'); }); hit(0, top + 2 * lh, W, lh, function () { input('down'); });
+      if (r.pause) { g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fillRect(0, 0, W, H); F('900', 80, DISPLAY); txt('PAUSED', W / 2, H / 2 - 20, '#ecece4', 'center'); F('700', 18); txt('START resume   SELECT quit', W / 2, H / 2 + 50, '#bdbdb5', 'center'); hit(0, 0, W, H, function () { input('start'); }); }
+    }
+    function drawPlan(t) {
+      var W = S.W, H = S.H, C = S.compact, sel = chosen(), used = sum(sel, 'w'), cp = cap(), req = REQS[G.sprint - 1], ok = req.ok(sel);
+      bg(t); g2.fillStyle = 'rgba(8,6,20,0.72)'; g2.fillRect(0, 0, W, H); hud();
+      F('900', 40, DISPLAY); txt('SPRINT PLANNING', 24, 92, '#ecece4');
+      F('700', 17); box(24, 122, W - 48, 44, 10, 'rgba(8,6,20,0.8)', ok ? GREEN : '#ffb02e', 2); txt(fit((ok ? '✓ GOAL: ' : 'GOAL: ') + req.t, W - 90), 40, 145, ok ? GREEN : '#ffb02e');
+      var y0 = 178, rh = Math.min(50, (H - 54 - 64 - y0) / G.backlog.length);
+      G.backlog.forEach(function (it, i) {
+        var y = y0 + i * rh, cur = i === G.cur, tooBig = !it.on && used + it.w > cp;
+        box(24, y + 2, W - 48, rh - 5, 9, cur ? 'rgba(140,192,255,0.22)' : 'rgba(8,6,20,0.6)', cur ? '#8cc0ff' : null, 2);
+        box(38, y + rh / 2 - 12, 24, 24, 5, it.on ? GREEN : null, it.on ? null : '#bdbdb5', 2); if (it.on) { F('900', 17); txt(String(sel.indexOf(it) + 1), 50, y + rh / 2 + 1, '#13102a', 'center'); }
+        g2.globalAlpha = tooBig ? 0.4 : 1;
+        g2.fillStyle = TYPES[it.k].c; g2.fillRect(76, y + 9, 8, rh - 19);
+        F('700', C ? 16 : 19); txt(fit(it.n, W - (C ? 380 : 470)), 96, y + rh / 2 - (C ? 0 : 0), '#ecece4');
+        F('500', 14); if (!C) txt(TYPES[it.k].n.toUpperCase(), W - 330, y + rh / 2, TYPES[it.k].c);
+        F('700', 17); txt(it.w + ' pt', W - (C ? 160 : 170), y + rh / 2, '#ecece4', 'right'); txt(it.v + ' val', W - 40, y + rh / 2, GREEN, 'right');
+        g2.globalAlpha = 1;
+        (function (ii) { hit(24, y, W - 48, rh, function () { toggle(ii); }); })(i);
+      });
+      var cy = H - 54 - 58; F('700', 17); txt('CAPACITY ' + used + '/' + cp, 24, cy + 22, used === cp ? GREEN : '#ecece4');
+      var sx = C ? 250 : 220, sw = Math.min(26, (W - sx - (C ? 190 : 210)) / cp);
+      for (var i2 = 0; i2 < cp; i2++) box(sx + i2 * sw, cy + 10, sw - 4, 24, 4, i2 < used ? GREEN : null, i2 < used ? null : '#6a6672', 2);
+      box(W - (C ? 170 : 190), cy + 2, C ? 146 : 166, 40, 10, sel.length ? '#1a56f0' : '#3a3740'); F('700', 17); txt('START ▸', W - (C ? 97 : 107), cy + 23, '#ffffff', 'center'); hit(W - 190, cy, 166, 46, begin);
+      noteBar();
+      hintBar(C ? [['A', 'Pick'], ['START', 'Go']] : [['A', 'Pick'], ['START', 'Run sprint'], ['↑↓', 'Move']]);
+    }
+    function drawReview(t) {
+      var W = S.W, H = S.H, v = G.rev, y = 150;
+      bg(t); g2.fillStyle = 'rgba(8,6,20,0.78)'; g2.fillRect(0, 0, W, H); hud();
+      F('900', 40, DISPLAY); txt('SPRINT ' + G.sprint + ' REVIEW', 24, 92, '#ecece4');
+      F('700', 18);
+      G.cargo.forEach(function (it) { txt('✓ ' + fit(it.n, W - 240), 40, y, '#ecece4'); txt('+' + it.v, W - 40, y, GREEN, 'right'); y += 34; });
+      G.dropped.forEach(function (it) { txt('✗ ' + fit(it.n, W - 240), 40, y, '#8a8694'); txt('dropped', W - 40, y, '#ff5f6d', 'right'); y += 34; });
+      y += 10; g2.fillStyle = 'rgba(236,236,228,0.2)'; g2.fillRect(40, y - 14, W - 80, 2); y += 14;
+      if (v.coffee) { txt('Coffee', 40, y, '#ecece4'); txt('+' + v.coffee, W - 40, y, GREEN, 'right'); y += 34; }
+      txt(fit((v.met ? 'Goal met: ' : 'Goal missed: ') + REQS[G.sprint - 1].t, W - 260), 40, y, v.met ? GREEN : '#ff5f6d'); txt(v.met ? '+' + v.bonus : '-1 ♥', W - 40, y, v.met ? GREEN : '#ff5f6d', 'right'); y += 48;
+      F('900', 44, DISPLAY); txt('SPRINT TOTAL', 40, y + 6, '#ecece4'); txt('+' + v.total, W - 40, y + 6, GREEN, 'right');
+      var next = G.trust <= 0 ? 'Trust is gone' : G.sprint >= 10 ? 'Final score' : 'Retro';
+      hintBar([['A', next]]); hit(0, 60, W, H - 60, function () { input('ok'); });
+    }
+    function drawRetro(t) {
+      var W = S.W, H = S.H, n = G.choices.length, gap = 16, cw = (W - 48 - gap * (n - 1)) / n, ch = S.compact ? 380 : 330, y = 190, lh1 = S.compact ? 38 : 34, lh2 = S.compact ? 29 : 26;
+      bg(t); g2.fillStyle = 'rgba(8,6,20,0.78)'; g2.fillRect(0, 0, W, H); hud();
+      F('900', 40, DISPLAY); txt('RETROSPECTIVE', 24, 92, '#ecece4'); F('500', 18); txt('Pick one artifact to keep', 24, 138, '#bdbdb5');
+      G.choices.forEach(function (a, i) {
+        var x = 24 + i * (cw + gap), cur = i === G.cur, yy = y - (cur ? 14 : 0), own = G.arts[a.id] || 0;
+        box(x, yy, cw, ch, 14, cur ? '#1c2b63' : 'rgba(8,6,20,0.85)', cur ? '#8cc0ff' : 'rgba(236,236,228,0.25)', cur ? 4 : 2);
+        box(x + 18, yy + 18, 54, 54, 12, GREEN); F('900', 30, DISPLAY); txt(a.n.charAt(0), x + 45, yy + 47, '#13102a', 'center');
+        if (own) { F('700', 14); txt('OWNED x' + own, x + cw - 16, yy + 44, '#8cc0ff', 'right'); }
+        F('900', S.compact ? 24 : 30, DISPLAY); g2.fillStyle = '#ecece4'; g2.textBaseline = 'alphabetic'; var nl = wrap(a.n.toUpperCase(), x + 18, yy + 122, cw - 36, lh1, 2);
+        F('500', S.compact ? 15 : 18, BODY); g2.fillStyle = '#d4d4cc'; wrap(a.d, x + 18, yy + 122 + nl * lh1 + 4, cw - 36, lh2, 6); g2.textBaseline = 'middle';
+        (function (ii) { hit(x, y - 14, cw, ch + 14, function () { if (G.cur === ii) take(ii); else { G.cur = ii; beep(520, 0.03); } }); })(i);
+      });
+      hintBar(S.compact ? [['←→', 'Choose'], ['A', 'Take']] : [['←→', 'Choose'], ['A', 'Take it']]);
+    }
+    function drawName(t) {
+      var W = S.W, H = S.H; bg(t); g2.fillStyle = 'rgba(8,6,20,0.78)'; g2.fillRect(0, 0, W, H);
+      F('900', 64, DISPLAY); txt(G.win ? 'SHIPPED!' : 'GAME OVER', W / 2, 110, G.win ? GREEN : '#ff5f6d', 'center');
+      F('700', 18); txt(G.win ? '10 sprints delivered' : 'Stakeholder trust ran out in sprint ' + G.sprint, W / 2, 168, '#bdbdb5', 'center');
+      F('900', 90, DISPLAY); txt(String(G.score), W / 2, 270, '#ecece4', 'center');
+      F('700', 18); txt('ENTER YOUR INITIALS', W / 2, 360, '#bdbdb5', 'center');
+      for (var i = 0; i < 3; i++) {
+        var x = W / 2 - 150 + i * 105, cur = i === G.cur;
+        box(x, 392, 90, 110, 12, cur ? '#1c2b63' : 'rgba(8,6,20,0.85)', cur ? '#8cc0ff' : 'rgba(236,236,228,0.25)', cur ? 4 : 2);
+        g2.font = '900 78px ' + DISPLAY; txt(String.fromCharCode(65 + G.name[i]), x + 45, 450, '#ecece4', 'center');
+        (function (ii) { hit(x, 392, 90, 110, function () { if (G.cur === ii) input('up'); else G.cur = ii; }); })(i);
+      }
+      box(W / 2 - 110, 530, 220, 54, 12, '#1a56f0'); F('700', 19); txt('SAVE SCORE', W / 2, 558, '#ffffff', 'center'); hit(W / 2 - 110, 524, 220, 66, save);
+      hintBar(S.compact ? [['↑↓', 'Letter'], ['A', 'Next'], ['START', 'Save']] : [['↑↓', 'Letter'], ['←→', 'Move'], ['A', 'Next'], ['START', 'Save']]);
+    }
+    function drawBoard(t) {
+      var W = S.W, H = S.H; bg(t); g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fillRect(0, 0, W, H);
+      F('900', 58, DISPLAY); txt('HIGH SCORES', W / 2, 70, GREEN, 'center');
+      var x0 = W / 2 - 250, rh = Math.min(48, (H - 54 - 130) / 10);
+      for (var i = 0; i < 10; i++) {
+        var e = scores[i], y = 130 + i * rh + rh / 2, me = i === G.rank;
+        if (me) box(x0 - 16, y - rh / 2 + 3, 532, rh - 6, 8, 'rgba(109,255,143,0.18)', GREEN, 2);
+        g2.font = '700 ' + Math.round(rh * 0.5) + 'px ' + MONO; var col = me ? GREEN : e ? '#ecece4' : '#55525e';
+        txt((i < 9 ? ' ' : '') + (i + 1) + '.', x0, y, col); txt(e ? e.n : '---', x0 + 90, y, col); txt(e ? String(e.s) : '', x0 + 500, y, col, 'right');
+      }
+      hintBar([['START', 'Play again'], ['B', 'Exit']]); hit(0, 0, W, H - 54, function () { input('start'); });
+    }
+    function drawTitle(t) {
+      var W = S.W, H = S.H; bg(t); g2.fillStyle = 'rgba(8,6,20,0.55)'; g2.fillRect(0, 0, W, H);
+      F('700', 18); txt('A PRODUCT DELIVERY ROGUELIKE', W / 2, 96, '#8cc0ff', 'center');
+      var tf = 150; g2.font = '900 ' + tf + 'px ' + DISPLAY; while (g2.measureText('SPRINT RUSH').width > W - 80 && tf > 60) { tf -= 6; g2.font = '900 ' + tf + 'px ' + DISPLAY; } txt('SPRINT RUSH', W / 2, 200, GREEN, 'center');
+      F('500', 19, BODY); txt(S.compact ? 'Plan. Dodge. Ship 10 sprints.' : 'Plan the sprint. Dodge the stakeholders. Ship 10 sprints.', W / 2, 296, '#ecece4', 'center');
+      var demo = [{ k: 'feat', w: 4 }, { k: 'bug', w: 1 }, { k: 'debt', w: 3 }, { k: 'ux', w: 2 }];
+      pm(W / 2 + 20, 506 + Math.abs(Math.sin(t * 3)) * -8 * M, 120, t, demo, false);
+      if (Math.floor(t * 2) % 2 || REDUCED) { F('700', 26); txt('PRESS START', W / 2, 560, '#ecece4', 'center'); }
+      F('700', 16); txt('BEST  ' + scores[0].n + '  ' + scores[0].s, W / 2, 612, '#bdbdb5', 'center');
+      hintBar([['START', 'Play'], ['SELECT', 'Scores'], ['B', 'Exit']]); hit(0, 0, W, H - 54, function () { input('start'); });
+    }
+    function draw(t) {
+      if (!G) start();
+      g2.textBaseline = 'middle'; g2.textAlign = 'left'; g2.globalAlpha = 1;
+      ({ title: drawTitle, plan: drawPlan, run: drawRun, review: drawReview, retro: drawRetro, name: drawName, board: drawBoard })[G.scene](t);
+      g2.textBaseline = 'alphabetic';
+    }
+    return { start: start, input: input, update: update, draw: draw };
+  })();
 
   function drawOff() {
     var W = S.W, H = S.H;
@@ -1188,6 +1603,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     else if (st.mode === 'boot') drawBoot(t);
     else if (st.mode === 'load') drawLoad(t);
     else if (st.mode === 'home') drawHome(t);
+    else if (st.mode === 'game') GAME.draw(t);
     else drawDetail(t);
     if (st.flash > 0) { g2.fillStyle = 'rgba(255,255,255,' + st.flash * 0.25 + ')'; g2.fillRect(0, 0, S.W, S.H); }
     if (S.crt) crtPass();
@@ -1201,6 +1617,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     if (action === 'tv') { st.tv = !st.tv; st.off = 0; beep(st.tv ? 520 : 140, 0.1); toast(st.tv ? 'TV on.' : 'TV off.'); return; }
     if (!st.power) return;
     if (action === 'reset') { reboot(); beep(300, 0.1); return; }
+    if (st.mode === 'game') { GAME.input(action); return; }
     if (st.mode === 'load') return;
     if (st.mode === 'boot') { if (st.boot > 0.4) { st.mode = 'home'; st.catSlide = 0; beep(990, 0.12); } return; }
     var cat = CATS[st.cat], n = cat.items.length;
@@ -1215,7 +1632,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       else if (action === 'back') beep(200, 0.05);
     } else {
       if (action === 'back') { st.mode = 'home'; st.catSlide = 1; beep(380, 0.05); }
-      else if (action === 'start' || action === 'ok') { beep(990, 0.08); openItem(cat.items[st.idx[st.cat]]); }
+      else if (action === 'start' || action === 'ok') { beep(990, 0.08); var cur = cat.items[st.idx[st.cat]]; if (cur.game) { st.mode = 'game'; GAME.start(); } else openItem(cur); }
       else if (action === 'up') { st.idx[st.cat] = (st.idx[st.cat] - 1 + n) % n; st.slide = 0; beep(520, 0.03); }
       else if (action === 'down') { st.idx[st.cat] = (st.idx[st.cat] + 1) % n; st.slide = 0; beep(520, 0.03); }
       else if (cat.items[st.idx[st.cat]].shelf && (action === 'left' || action === 'right' || action === 'shelf')) {
@@ -1388,7 +1805,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       var vw = { '1': 'room', '2': 'console', '3': 'screen' }[e.key];
       if (vw && rig === desk) { setView(vw); return; }
       var a = KEYMAP[e.key.toLowerCase()];
-      if (a) { e.preventDefault(); if (!e.repeat || /up|down|left|right/.test(a)) press(a); }
+      if (a) { e.preventDefault(); if (!e.repeat || (/up|down|left|right/.test(a) && st.mode !== 'game')) press(a); }
     });
     document.querySelectorAll('.tools .swatch').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -1443,7 +1860,8 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
   function loop() {
     var dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
     if (st.power && st.mode === 'boot') { st.boot += dt; if (st.boot > 3.4) { st.mode = st.loaded != null ? 'load' : 'home'; st.loadT = 0; st.catSlide = 0; } }
-    if (st.mode === 'load') { st.loadT += dt; if (st.loadT > 1.0) { st.cat = 0; st.idx[0] = st.loaded; st.mode = 'detail'; st.slide = 0; st.flash = 0.8; beep(990, 0.08); } }
+    if (st.mode === 'load') { st.loadT += dt; if (st.loadT > 1.0) { st.cat = 0; st.idx[0] = st.loaded; st.mode = 'detail'; st.slide = 0; st.flash = 0.8; beep(990, 0.08); if (CATS[0].items[st.loaded].game) { st.mode = 'game'; GAME.start(); } } }
+    if (st.power && st.mode === 'game') GAME.update(dt);
     st.off += dt;
     st.slide = Math.min(1, st.slide + dt * 5);
     st.catSlide = Math.min(1, st.catSlide + dt * 5);
