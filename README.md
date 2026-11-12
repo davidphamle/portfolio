@@ -48,3 +48,9 @@ The site follows the visitor's device setting until they press the sun/moon butt
 ## Company logos
 
 The logos on the case-study cards come from each company's own website, listed in `logos/sources.json`. The **Fetch company logos** GitHub Action (`.github/workflows/fetch-logos.yml`) downloads them into `logos/` and commits them. It runs whenever `sources.json` changes, or manually from the Actions tab. If a logo file is missing, its card shows the company's initials instead.
+
+## Favicon and link previews
+
+- **Favicon:** `favicon.svg` (modern browsers), `favicon.ico` (16/32/48 px fallback), `apple-touch-icon.png` (180 px, iOS home screen) and `icon-192.png` / `icon-512.png` listed in `site.webmanifest`. The mark is a blue notched tile with DPL in Big Shoulders Display, drawn as outlines so it doesn't need the web font.
+- **Link previews:** `og-image.png` (homepage) and `og-play.png` (play mode), both 1200×630, set through Open Graph and Twitter card tags in each page's `<head>`. After changing an image, re-scrape the link in LinkedIn Post Inspector or the Facebook Sharing Debugger, because they cache previews.
+
