@@ -504,13 +504,28 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     });
     var table = mesh(new THREE.BoxGeometry(44, 0.8, 26), plastic('#ffffff', { map: woodTex, roughness: 0.62, clearcoat: 0.25, clearcoatRoughness: 0.5, envMapIntensity: 0.45 }), 0, -0.4, 0, scene); table.castShadow = false;
     // posters
-    [[-13.4, 9.2, '#1a56f0', 'PLAYER 1', 'READY'], [13.0, 9.6, '#ff4f8a', 'HI SCORE', '9 ROLES']].forEach(function (p) {
-      var tx = canvasTex(256, 352, function (x, w, h) {
-        x.fillStyle = '#14111f'; x.fillRect(0, 0, w, h); x.fillStyle = p[2];
-        for (var r = 0; r < 7; r++) for (var c = 0; c < 7; c++) if ((r * 3 + c * 5 + r * c) % 4 < 2 && Math.abs(c - 3) + Math.abs(r - 3) < 5) x.fillRect(46 + c * 24, 40 + r * 24, 20, 20);
-        x.fillStyle = '#ecece4'; x.textAlign = 'center'; x.font = '900 46px ' + DISPLAY; x.fillText(p[3], w / 2, 268);
-        x.font = '600 18px ' + MONO; x.fillStyle = '#8cc0ff'; x.fillText(p[4], w / 2, 304);
+    function invader(x, col, ox, oy, cell) { x.fillStyle = col; for (var r = 0; r < 7; r++) for (var c = 0; c < 7; c++) if ((r * 3 + c * 5 + r * c) % 4 < 2 && Math.abs(c - 3) + Math.abs(r - 3) < 5) x.fillRect(ox + c * cell, oy + r * cell, cell - 4, cell - 4); }
+    // the right-hand poster is the Sprint Rush leaderboard; it redraws whenever the shared scores load or change
+    function hiPoster(x, w, h, list, online) {
+      x.fillStyle = '#14111f'; x.fillRect(0, 0, w, h);
+      x.fillStyle = '#ff4f8a'; x.fillRect(0, 0, w, 12); x.fillRect(0, h - 12, w, 12);
+      invader(x, '#ff4f8a', w / 2 - 84, 44, 24);
+      x.textAlign = 'center'; x.fillStyle = '#ecece4'; x.font = '900 92px ' + DISPLAY; x.fillText('HI SCORE', w / 2, 320);
+      x.font = '700 26px ' + MONO; x.fillStyle = '#8cc0ff'; x.fillText(online ? 'SPRINT RUSH · WORLD' : 'SPRINT RUSH', w / 2, 362);
+      (list || []).slice(0, 5).forEach(function (e, i) {
+        var y = 430 + i * 52; x.fillStyle = i === 0 ? '#ffd23f' : '#ecece4'; x.font = '700 36px ' + MONO;
+        x.textAlign = 'left'; x.fillText((i + 1) + '. ' + e.n, 60, y); x.textAlign = 'right'; x.fillText(String(e.s), w - 60, y);
       });
+      x.textAlign = 'center'; x.font = '600 22px ' + MONO; x.fillStyle = '#bdbdb5'; x.fillText('INSERT CARTRIDGE TO PLAY', w / 2, h - 34);
+    }
+    [[-13.4, 9.2, '#1a56f0', 'PLAYER 1', 'READY'], [13.0, 9.6, '#ff4f8a', 'HI SCORE', '9 ROLES']].forEach(function (p, pi) {
+      var tx = canvasTex(512, 704, function (x, w, h) {
+        if (pi === 1) { hiPoster(x, w, h, HISCORE.list, HISCORE.online); return; }
+        x.fillStyle = '#14111f'; x.fillRect(0, 0, w, h); invader(x, p[2], 92, 80, 48);
+        x.fillStyle = '#ecece4'; x.textAlign = 'center'; x.font = '900 92px ' + DISPLAY; x.fillText(p[3], w / 2, 536);
+        x.font = '600 36px ' + MONO; x.fillStyle = '#8cc0ff'; x.fillText(p[4], w / 2, 608);
+      });
+      if (pi === 1) HISCORE.on(function (list, online) { var c = tx.image, x = c.getContext('2d'); hiPoster(x, c.width, c.height, list, online); tx.needsUpdate = true; });
       var fr = mesh(new THREE.BoxGeometry(4.5, 6.1, 0.16), mat('#0c0a12', { roughness: 0.4 }), p[0], p[1], -12.9, scene);
       var art = new THREE.Mesh(new THREE.PlaneGeometry(4.1, 5.7), mat('#ffffff', { map: tx, roughness: 0.8, envMapIntensity: 0.2 })); art.position.set(0, 0, 0.09); fr.add(art);
     });
@@ -844,6 +859,45 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
   /* ================= Screen OS ================= */
   var SPRINT_RUSH = Math.max(0, CATS[0].items.findIndex(function (it) { return it.game; })); // the default cartridge
+  // On-screen prompts name the control the visitor is actually using: keyboard keys after a key press,
+  // the console's own buttons after a tap or click. Desktop with a mouse starts on keyboard names.
+  var INPUT = (window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches) ? 'kbd' : 'pad';
+  var KEYNAME = { A: 'ENTER', B: 'ESC', START: 'SPACE', SELECT: 'SHIFT', L: 'Q', R: 'E' };
+  function K(b) { return INPUT === 'kbd' ? String(b).replace(/\b(START|SELECT|A|B|L|R)\b/g, function (m) { return KEYNAME[m]; }) : b; }
+  // Shared Sprint Rush leaderboard, stored in Supabase (project "portfolio"). The table is locked: the page can only call
+  // sprint_rush_top (read the top scores) and sprint_rush_submit (validated and rate limited). Offline, it falls back to this browser.
+  var HISCORE = (function () {
+    var API = 'https://oabvezmoclxzeitpxroe.supabase.co/rest/v1/rpc/', APIKEY = 'sb_publishable_GZLeDLMjODeqCgpPgGKAZQ_Ejjlf_0u', LKEY = 'dpl8-sprint-rush-scores';
+    var H = { list: null, online: false, subs: [] }, busy = false;
+    function local() {
+      var l = null; try { l = JSON.parse(localStorage.getItem(LKEY)); } catch (e) {}
+      return Array.isArray(l) && l.length ? l : [{ n: 'CEO', s: 2400 }, { n: 'CTO', s: 1800 }, { n: 'DEV', s: 1200 }, { n: 'UXR', s: 700 }, { n: 'INT', s: 300 }];
+    }
+    function rpc(fn, body) {
+      return fetch(API + fn, { method: 'POST', headers: { apikey: APIKEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (!r.ok) throw new Error(j.message || r.status); return j; }); });
+    }
+    function emit() { H.subs.forEach(function (f) { try { f(H.list, H.online); } catch (e) {} }); }
+    H.refresh = function () {
+      if (busy) return Promise.resolve(H.list); busy = true;
+      return rpc('sprint_rush_top', { lim: 10 }).then(function (rows) { H.list = rows.map(function (r) { return { n: r.name, s: r.score }; }); H.online = true; })
+        .catch(function () { H.online = false; }).then(function () { busy = false; emit(); return H.list; });
+    };
+    // resolves with the 1-based rank, or null if it could not be worked out
+    H.submit = function (e, sprint, won) {
+      return rpc('sprint_rush_submit', { p_name: e.n, p_score: e.s, p_sprint: sprint, p_won: !!won })
+        .then(function (r) { var rank = r && r[0] ? Number(r[0].rank) : null; busy = false; return H.refresh().then(function () { return rank; }); })
+        .catch(function () {
+          var l = local(); l.push(e); l.sort(function (a, b) { return b.s - a.s; }); l = l.slice(0, 10);
+          try { localStorage.setItem(LKEY, JSON.stringify(l)); } catch (err) {}
+          H.list = l; H.online = false; emit(); var i = l.indexOf(e); return i < 0 ? null : i + 1;
+        });
+    };
+    H.on = function (f) { H.subs.push(f); if (H.list) f(H.list, H.online); };
+    H.list = local();
+    H.refresh();
+    return H;
+  })();
   var st = { power: true, tv: true, shelf: 0, mode: 'boot', boot: 0, cat: 0, idx: [SPRINT_RUSH, 0, 0, 0], scroll: [0, 0, 0, 0], slide: 1, catSlide: 1, flash: 0, off: 0, loaded: SPRINT_RUSH, loadT: 0 };
   var S, g2;
   function rr(x, y, w, h, r) { g2.beginPath(); g2.moveTo(x + r, y); g2.arcTo(x + w, y, x + w, y + h, r); g2.arcTo(x + w, y + h, x, y + h, r); g2.arcTo(x, y + h, x, y, r); g2.arcTo(x, y, x + w, y, r); g2.closePath(); }
@@ -913,10 +967,10 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     var W = S.W, H = S.H, hb = 54, x = 24, fs = S.compact ? 20 : 17;
     g2.fillStyle = 'rgba(0,0,0,0.55)'; g2.fillRect(0, H - hb, W, hb); g2.textBaseline = 'middle';
     parts.forEach(function (p) {
-      g2.font = '700 ' + fs + 'px ' + MONO; var w = g2.measureText(p[0]).width + 18;
+      var key = K(p[0]); g2.font = '700 ' + fs + 'px ' + MONO; var w = g2.measureText(key).width + 18;
       if (x + w > W - 20) return;
       rr(x, H - hb + 13, w, 28, 6); g2.fillStyle = '#ecece4'; g2.fill();
-      g2.fillStyle = '#13102a'; g2.fillText(p[0], x + 9, H - hb + 28);
+      g2.fillStyle = '#13102a'; g2.fillText(key, x + 9, H - hb + 28);
       x += w + 8; g2.font = '500 ' + fs + 'px ' + MONO; g2.fillStyle = '#dcdcd4'; g2.fillText(p[1], x, H - hb + 28);
       x += g2.measureText(p[1]).width + 22;
     });
@@ -931,7 +985,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     g2.fillStyle = '#1a56f0'; g2.fillText('DPL·8', W / 2, -90 + e * (H / 2 + 30));
     if (st.boot > 1.1) {
       g2.font = '600 22px ' + MONO; g2.fillStyle = '#bdbdb5'; g2.fillText('© 2026 DAVID PHAM LE', W / 2, H / 2 + 80);
-      if (Math.floor(t * 2) % 2 === 0) { g2.fillStyle = '#ecece4'; g2.font = '700 26px ' + MONO; g2.fillText('PRESS START', W / 2, H / 2 + 150); }
+      if (Math.floor(t * 2) % 2 === 0) { g2.fillStyle = '#ecece4'; g2.font = '700 26px ' + MONO; g2.fillText(K('PRESS START'), W / 2, H / 2 + 150); }
     }
     g2.textAlign = 'left';
     hit(0, 0, W, H, function () { go('start'); });
@@ -1236,6 +1290,25 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       { id: 'flags', n: 'Feature Flags', d: 'Must-do items weigh 1 point less.', max: 1 },
       { id: 'sponsor', n: 'Exec Sponsor', d: '+1 trust, right now.', max: 2 }
     ];
+    // Retro card art. Icons are path data from Pixelarticons by Gerrit Halfmann (MIT, github.com/halfmage/pixelarticons), 24x24 grid.
+    // Rarity sets the card frame: common (steel), rare (blue), legendary (gold, shimmering).
+    var ART_ICON = {"dod": "M4 2h16v2H4zM2 4h2v10H2zm18 0h2v10h-2zM4 14h2v2H4zm2 2h2v2H6zm4 4h4v2h-4zm10-6h-2v2h2zm-2 2h-2v2h2zm-2 2h-2v2h2zm-6 0H8v2h2z", "team": "M5 2h6v2H5zm10 0h4v2h-4zM5 10h6v2H5zm10 0h4v2h-4zm4-6h2v6h-2zm-8 0h2v6h-2zM3 4h2v6H3zM0 18h2v4H0zm14 0h2v4h-2zm8 0h2v4h-2zM4 14h8v2H4zm12 0h4v2h-4zM2 16h2v2H2zm10 0h2v2h-2zm8 0h2v2h-2z", "cicd": "M4 2h4v2H4zm0 6h4v2H4zM2 4h2v4H2zm6 0h2v4H8zm8 10h4v2h-4zm0 6h4v2h-4zm-2-4h2v4h-2zm6 0h2v4h-2zM5 12h2v10H5zm7 0h2v2h-2zm-2-2h2v2h-2z", "road": "M4 20h2v2H2V6h2v14Zm12 0h2v2h-4v-2h-2v-2h2V8h-2V6h4v14Zm-8 0H6v-2h2v2Zm12 0h-2v-2h2v2ZM10 4h2v2h-2v10h2v2H8V4H6V2h4v2Zm12 14h-2V4h-2V2h4v16ZM6 6H4V4h2v2Zm12 0h-2V4h2v2Z", "no": "M6 2h12v2H6zm0 18h12v2H6zM2 6h2v12H2zm18 0h2v12h-2zm-2-2h2v2h-2zm-2 2h2v2h-2zm-2 2h2v2h-2zm-2 2h2v2h-2zm-2 2h2v2h-2zm-2 2h2v2H8zm-2 2h2v2H6zm12 2h2v2h-2zM4 4h2v2H4zm0 14h2v2H4z", "coffee": "M4 4h16v2H4zm0 2h2v8H4zm2 8h10v2H6zm14-8h2v4h-2zm-2 4h2v2h-2zm-2-4h2v8h-2zM2 18h18v2H2z", "tests": "M2 5h2v4H2zm20 0h-2v4h2zM4 9h2v2H4zm16 0h-2v2h2zM2 13h4v2H2zm20 0h-4v2h4zM4 17h2v2H4zm16 0h-2v2h2zM2 19h2v2H2zm20 0h-2v2h2zM6 11h12v2H6z M6 7h2v12H6zm10 0h2v12h-2zM8 19h8v2H8zM8 5h8v2H8z M11 15h2v6h-2zM8 1h2v6H8zm6 0h2v6h-2z", "map": "M7 2h10v2H7zM5 4h2v2H5zm14 0h-2v2h2zM7 17h2v2H7zm2 2h2v2H9zm6-2h2v2h-2zm-2 2h2v2h-2zm-2 2h2v2h-2zm-6-7h2v3H5zm12 0h2v3h-2zM3 6h2v8H3zm18 0h-2v8h2zM10 6h4v2h-4zM8 8h2v4H8zm2 4h4v2h-4zm4-4h2v4h-2z", "goal": "M5 1h14v2H5zM3 3h2v2H3zm0 16h2v2H3zm16 0h2v2h-2zm0-16h2v2h-2zm2 2h2v14h-2zM5 21h14v2H5zM1 5h2v14H1zm8 0h6v2H9zM5 9h2v6H5zm4 8h6v2H9zm8-8h2v6h-2zm-6 0h2v2h-2zM7 7h2v2H7zm0 8h2v2H7zm8 0h2v2h-2zm0-8h2v2h-2zm-6 4h2v2H9zm2 2h2v2h-2zm2-2h2v2h-2z", "poker": "M6 8h12v2H6zm0 4h8v2H6zM4 4h16v2H4zm0 14h16v2H4zM2 6h2v12H2zm18 0h2v12h-2z", "flags": "M4 2h2v20H4z M4 4h16v2H4zm12 2h2v2h-2zm-2 2h2v2h-2zm2 2h2v2h-2zM4 12h16v2H4z", "sponsor": "M3 3h2v12H3zm16 0h2v12h-2zm-8 0h2v2h-2zM9 5h2v2H9zM5 5h2v2H5z M3 3h2v2H3zm4 4h2v2H7zm6-2h2v2h-2zm2 2h2v2h-2zm2-2h2v2h-2zM5 15h14v2H5zm-2 4h18v2H3z"};
+    var ART_LOOK = {
+      dod: { c: '#8cc0ff', r: 1, tag: 'DEFENCE' }, team: { c: '#6dff8f', r: 1, tag: 'CAPACITY' }, cicd: { c: '#ff7a2f', r: 2, tag: 'SPEED' },
+      road: { c: '#ffd23f', r: 0, tag: 'SPEED' }, no: { c: '#ff5f6d', r: 1, tag: 'DEFENCE' }, coffee: { c: '#d9a066', r: 0, tag: 'SCORE' },
+      tests: { c: '#b48cff', r: 1, tag: 'DEFENCE' }, map: { c: '#4dd8e8', r: 0, tag: 'DEFENCE' }, goal: { c: '#ff4f8a', r: 1, tag: 'SCORE' },
+      poker: { c: '#ecece4', r: 0, tag: 'CAPACITY' }, flags: { c: '#ffb02e', r: 0, tag: 'CAPACITY' }, sponsor: { c: '#ffd23f', r: 2, tag: 'TRUST' }
+    };
+    var RARITY = [{ n: 'COMMON', c: '#9a96a6' }, { n: 'RARE', c: '#4d9bff' }, { n: 'LEGENDARY', c: '#ffd23f' }];
+    // Stakeholder roster: same body, different people. Each gets its own palette, head and lines.
+    var STAKES = [
+      { id: 'exec', shouts: ['ASAP!', 'URGENT', 'QUICK Q?', 'BY EOD?'] },
+      { id: 'sales', shouts: ['CLIENT ASKED!', 'CAN WE DEMO?', 'I PROMISED IT', 'JUST 1 THING'] },
+      { id: 'mkt', shouts: ['LAUNCH DATE?', 'NEW LOGO?', 'MAKE IT POP', 'GO VIRAL?'] },
+      { id: 'fin', shouts: ['BUDGET?', 'WHAT ROI?', 'CUT SCOPE', 'COST CODE?'] },
+      { id: 'legal', shouts: ['SIGN-OFF?', 'COMPLIANT?', 'NEED A DPA', 'NOT YET'] },
+      { id: 'cto', shouts: ['REWRITE IT?', 'USE AI?', 'MICROSERVICES', 'GOT 5 MIN?'] }
+    ];
     // Random situations, rolled at the start of planning from sprint 2. Fields are read by cap(), plan(), begin(), spawn() and endSprint().
     var EVENTS = [
       { id: 'holiday', n: 'Dev on holiday', d: 'Sam is in Bali this sprint.', fx: '-2 capacity', cap: -2, icon: 'sun' },
@@ -1342,7 +1415,26 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
         lose: function (t) { [64, 63, 62, 61, 60].forEach(function (n, i) { tone('square', n, t + i * 0.2, 0.24, 0.05); }); tone('triangle', 36, t + 1, 0.8, 0.14); }
       };
       function fx(name) { if (!ok()) return; (FX[name] || FX.nav)(actx.currentTime + 0.005); }
-      return { play: play, tick: tick, fx: fx };
+      // One-shot ending themes, written on an 8th-note grid (0 = rest).
+      var JINGLES = {
+        // Victory: a rising C-major fanfare over I-IV-V-I, snare roll into a held top C
+        win: { bpm: 150, lead: [67, 0, 67, 72, 0, 72, 76, 0, 79, 0, 0, 76, 79, 0, 84, 0, 81, 0, 81, 79, 77, 0, 76, 74, 72, 0, 76, 79, 84, 0, 0, 0],
+          bass: [48, 48, 55, 48, 48, 55, 48, 55, 53, 53, 60, 53, 53, 60, 53, 60, 55, 55, 62, 55, 55, 62, 55, 62, 48, 0, 0, 0, 36, 0, 0, 0],
+          drums: function (i, t) { if (i % 4 === 0 && i < 24) tone('sine', 50, t, 0.12, 0.3, 28); if (i % 4 === 2 && i < 24) noise(t, 0.1, 0.1, 1500); if (i >= 24 && i < 28) { noise(t, 0.05, 0.12, 1800); noise(t + 0.1, 0.05, 0.12, 1800); } if (i === 28) noise(t, 1.4, 0.16, 3000); },
+          hold: 28 },
+        // Game over: a slow chromatic slide down in A minor, ending on a low thud
+        lose: { bpm: 84, lead: [69, 0, 68, 0, 67, 0, 66, 0, 65, 0, 0, 64, 0, 0, 0, 0, 57, 0, 0, 0],
+          bass: [45, 0, 0, 0, 0, 0, 0, 0, 41, 0, 0, 0, 40, 0, 0, 0, 33, 0, 0, 0],
+          drums: function (i, t) { if (i === 0 || i === 16) { noise(t, 0.5, 0.2, 200); tone('sine', 45, t, 0.5, 0.35, 24); } },
+          hold: 16 }
+      };
+      function jingle(name) {
+        if (!ok()) return; var j = JINGLES[name], sp = 60 / j.bpm / 2, t0 = actx.currentTime + 0.06;
+        j.lead.forEach(function (n, i) { if (n) { var len = i >= j.hold ? sp * 6 : sp * 0.95; tone('square', n, t0 + i * sp, len, 0.05); tone('square', n + 12, t0 + i * sp, len, 0.012); } });
+        j.bass.forEach(function (n, i) { if (n) tone('triangle', n, t0 + i * sp, i >= j.hold ? sp * 6 : sp * (name === 'lose' ? 3.8 : 0.9), 0.13); });
+        for (var i = 0; i < j.lead.length; i++) j.drums(i, t0 + i * sp);
+      }
+      return { play: play, tick: tick, fx: fx, jingle: jingle };
     })();
 
     /* ---------- pixel sprites ---------- */
@@ -1352,9 +1444,10 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       n: '#39c26b', N: '#1f7a40', c: '#ecece4', C: '#b9b6ad', d: '#6b4a2f', x: '#8a8694', z: '#ff7a2f', a: '#8cc0ff', q: '#ffe9a8'
     };
     var SPR = {};
-    function mk(name, rows) {
+    function mk(name, rows, pal) {
+      var P = PAL; if (pal) { P = {}; for (var pk in PAL) P[pk] = PAL[pk]; for (var qk in pal) P[qk] = pal[qk]; }
       var h = rows.length, w = rows[0].length, c = document.createElement('canvas'); c.width = w; c.height = h; var x = c.getContext('2d');
-      for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) { var ch = rows[j].charAt(i); if (ch !== '.' && PAL[ch]) { x.fillStyle = PAL[ch]; x.fillRect(i, j, 1, 1); } }
+      for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) { var ch = rows[j].charAt(i); if (ch !== '.' && P[ch]) { x.fillStyle = P[ch]; x.fillRect(i, j, 1, 1); } }
       SPR[name] = c;
     }
     function dspr(name, cx, by, sc) {
@@ -1372,10 +1465,32 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       ];
       legs.forEach(function (lg, f) { mk('pm' + f, pmTop.concat(lg)); });
       mk('pmHurt', ['....hhhh....', '...hhhhhh...', '...hhssss...', '...hsseses..', '...hssssss..', '....sooo....', '...bbllbb...', 'ss.bbblbbbss', '..bBbblbb...', '..bBbbbbb...', '...pppppp...'].concat(legs[0]));
-      // Stakeholder: suit, tie, phone out, 2-frame walk toward you
-      var skTop = ['...hhhh...', '..hhhhhh..', '..sssshh..', '..sesssh..', '..sssss...', '...sss....', '..gwtwg...', '.gggtgggs.', '.gggtggxs.', '.ggggggg..', '..GGGGGG..'];
-      mk('sk0', skTop.concat(['..GG..GG..', '..GG..GG..', '.GG....GG.', '.GG....GG.', '.kk....kk.']));
-      mk('sk1', skTop.concat(['...GGGG...', '...GG.GG..', '...GG.GG..', '...GG..GG.', '...kk..kk.']));
+      // Stakeholders: six people on one body plan. Letters: h hair, s skin, T top, U trousers, A accent (tie, lanyard),
+      // I item in hand, w collar, k shoes/glasses. Each walks in 2 frames toward you.
+      var HEADS = {
+        short: ['...hhhh...', '..hhhhhh..', '..sssshh..', '..sesssh..', '..sssss...', '...sss....'],
+        bun: ['....hh....', '...hhhh...', '..hhhhhh..', '.hsesssh..', '.hsssssh..', '...sss....'],
+        bald: ['..........', '...ssss...', '..ssssss..', '..sesssss.', '..hhhhh...', '...hhh....'],
+        glasses: ['...hhhh...', '..hhhhhh..', '..sssshh..', '.kkkskkh..', '..sssss...', '...sss....'],
+        headset: ['..xhhhhx..', '..hhhhhh..', '.xsssshh..', '.xsesssh..', '.xxsssss..', '...sss....'],
+        curly: ['..h.hh.h..', '.hhhhhhhh.', '.hhssssh..', '..sesssh..', '..sssss...', '...sss....']
+      };
+      var BODY = {
+        suit: ['..TwAwT...', '.TTTATTTs.', '.TTTATTIs.', '.TTTTTTT..', '..UUUUUU..'],
+        hoodie: ['..TTTTT...', '.TTTATTTs.', '.TTTTTTIs.', '.TTTTTTT..', '..UUUUUU..'],
+        blouse: ['..TTwTT...', '.TTTTTTTs.', '.TTATTTIs.', '.TTTTTTT..', '..UUUUUU..']
+      };
+      var LEGS = [['..UU..UU..', '..UU..UU..', '.UU....UU.', '.UU....UU.', '.kk....kk.'], ['...UUUU...', '...UU.UU..', '...UU.UU..', '...UU..UU.', '...kk..kk.']];
+      var LOOK = {
+        exec: { head: 'short', body: 'suit', pal: { h: '#3a2a1e', s: '#f2c9a0', T: '#4a4656', U: '#2e2b38', A: '#d8332b', I: '#8a8694' } },
+        sales: { head: 'headset', body: 'suit', pal: { h: '#e0b04a', s: '#e8b48a', T: '#2f6fe0', U: '#1f2a4a', A: '#ffd23f', I: '#13102a' } },
+        mkt: { head: 'curly', body: 'hoodie', pal: { h: '#2a1a12', s: '#8d5a3b', T: '#ff7a2f', U: '#3a3550', A: '#ecece4', I: '#c9c6d4' } },
+        fin: { head: 'glasses', body: 'blouse', pal: { h: '#7a7a82', s: '#f2c9a0', T: '#2f9e63', U: '#253038', A: '#ffd23f', I: '#ecece4' } },
+        legal: { head: 'bun', body: 'blouse', pal: { h: '#1a1414', s: '#c68c5a', T: '#5b3fb0', U: '#1d1830', A: '#ecece4', I: '#d9a066' } },
+        cto: { head: 'bald', body: 'hoodie', pal: { h: '#5a3a24', s: '#e8b48a', T: '#262236', U: '#3a5a8a', A: '#6dff8f', I: '#8cc0ff' } }
+      };
+      for (var lk in LOOK) { var L = LOOK[lk], top = HEADS[L.head].concat(BODY[L.body]); mk('sk_' + lk + '0', top.concat(LEGS[0]), L.pal); mk('sk_' + lk + '1', top.concat(LEGS[1]), L.pal); }
+      mk('trophy', ['.yyyyyyyy.', 'yyqqqqqqyy', 'y.yqqqqy.y', 'y.yyqqyy.y', '.yyyyyyyy.', '...yyyy...', '....yy....', '....yy....', '..YYYYYY..', '..YYYYYY..']);
       // Blocker: striped barricade with a beacon that blinks
       var bl = ['cccccccccccccccc', 'zzcczzcczzcczzcc', 'zcczzcczzcczzccz', 'cczzcczzcczzcczz', 'czzcczzcczzcczzc', 'cccccccccccccccc', '..kk........kk..', '..kk........kk..', '..kk........kk..', '.kkkk......kkkk.'];
       mk('bl0', ['.......oo.......', '......oyyo......'].concat(bl));
@@ -1434,11 +1549,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       mk('ic-fire', ['...o...', '..oo...', '..ooo.o', '.ooyoo.', '.oyyyo.', 'ooyyyoo', '.ooooo.']);
     })();
 
-    function loadScores() {
-      if (scores) return; try { scores = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-      if (!Array.isArray(scores)) scores = [{ n: 'CEO', s: 2400 }, { n: 'CTO', s: 1800 }, { n: 'DEV', s: 1200 }, { n: 'UXR', s: 700 }, { n: 'INT', s: 300 }];
-    }
-    function start() { loadScores(); G = { scene: 'title', t0: 0 }; }
+    function start() { HISCORE.refresh(); G = { scene: 'title', t0: 0 }; }
     function quit() { AU.play(null); st.mode = 'home'; st.cat = 0; st.catSlide = 0; beep(300, 0.08); }
     function newRun() { G = { scene: 'plan', sprint: 1, score: 0, trust: 3, arts: {}, note: null, lastEv: null }; plan(); AU.fx('go'); }
     function cap() { return Math.max(4, 8 + 3 * (G.arts.team || 0) + (G.ev && G.ev.cap || 0)); }
@@ -1497,7 +1608,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       if (s >= 10) pool.push('ceo', 'ceo');
       var k2 = rand(pool); if (k2 === 'stake' && G.arts.map && Math.random() < 0.5) k2 = 'block';
       var d = OBS[k2], lane = Math.floor(Math.random() * (d.span ? 2 : 3));
-      r.obs.push({ k: k2, d: d, x: 1040, lane: lane, ly: lane, warn: d.warn || 0, tick: 0.6, say: rand(SHOUTS), ph: Math.random() * 6 });
+      var who = rand(STAKES); r.obs.push({ k: k2, d: d, x: 1040, lane: lane, ly: lane, warn: d.warn || 0, tick: 0.6, v: who.id, say: rand(who.shouts), ph: Math.random() * 6 });
       if (d.warn) AU.fx('warn');
       r.spawn = Math.max(0.42, 1.3 - s * 0.08) * (1 - 0.25 * prog()) * (0.75 + Math.random() * 0.5); if (d.span) r.spawn = Math.max(r.spawn, 0.85);
     }
@@ -1535,19 +1646,30 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       var a = G.choices[i]; G.arts[a.id] = (G.arts[a.id] || 0) + 1; if (a.id === 'sponsor') G.trust++;
       G.sprint++; AU.fx('pick'); plan();
     }
-    function finish(win) { G.win = win; G.scene = 'name'; G.name = [0, 0, 0]; G.cur = 0; AU.fx(win ? 'win' : 'lose'); }
+    // Ending: a short animation with its own theme, then initials. Loss: the PM goes down and the cargo scatters.
+    // Win: fireworks, confetti and a trophy.
+    function finish(win) {
+      G.win = win; G.scene = 'ending'; G.endT = 0; G.name = [0, 0, 0]; G.cur = 0;
+      var parts = [], kinds = ['feat', 'bug', 'debt', 'ux', 'feat', 'debt'];
+      if (!win) kinds.forEach(function (k, i) { parts.push({ crate: k, x: 0, y: -i * 32, vx: (Math.random() - 0.3) * 520, vy: -380 - Math.random() * 300, rot: 0, vr: (Math.random() - 0.5) * 12, rest: false }); });
+      else for (var i = 0; i < 90; i++) parts.push({ conf: true, x: Math.random() * S.W, y: -Math.random() * S.H, vy: 80 + Math.random() * 120, ph: Math.random() * 6, c: rand(['#6dff8f', '#ffd23f', '#ff4f8a', '#4d9bff', '#b48cff', '#ecece4']) });
+      G.end = { parts: parts, fw: [], nextFw: 0.2 };
+      AU.play(null); AU.jingle(win ? 'win' : 'lose');
+    }
     function save() {
+      if (G.saving) return;
       var n = G.name.map(function (c) { return String.fromCharCode(65 + c); }).join(''), e = { n: n, s: G.score };
-      scores.push(e); scores.sort(function (a, b) { return b.s - a.s; }); scores = scores.slice(0, 10); G.rank = scores.indexOf(e);
-      try { localStorage.setItem(KEY, JSON.stringify(scores)); } catch (err) {}
-      G.scene = 'board'; AU.fx('goal');
+      G.scene = 'board'; G.rank = -1; G.myRank = null; G.saving = true; AU.fx('goal');
+      HISCORE.submit(e, G.sprint, G.win).then(function (rank) { G.saving = false; G.myRank = rank; G.rank = rank && rank <= 10 ? rank - 1 : -1; });
     }
 
     function input(a, arg) {
       if (!G) start();
       var sc = G.scene, go2 = a === 'ok' || a === 'start';
       if (a === 'select' && sc !== 'title' && sc !== 'name') { start(); AU.fx('unpick'); return; }
-      if (sc === 'title') { if (go2) newRun(); else if (a === 'back') quit(); else if (a === 'select') { G.scene = 'board'; G.rank = -1; } }
+      if (sc === 'title') { if (go2) { G.scene = 'brief'; G.briefT = 0; AU.fx('pick'); } else if (a === 'back') quit(); else if (a === 'select') { G.scene = 'board'; G.rank = -1; HISCORE.refresh(); } }
+      else if (sc === 'brief') { if (go2) newRun(); else if (a === 'back') { G.scene = 'title'; AU.fx('unpick'); } }
+      else if (sc === 'ending') { if (go2 && G.endT > 1.6) { G.scene = 'name'; AU.fx('nav'); } }
       else if (sc === 'plan') {
         if (G.evShow) { if (go2 || a === 'back') { G.evShow = false; AU.fx('nav'); } return; }
         var n = G.backlog.length;
@@ -1580,7 +1702,22 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
     function update(dt) {
       if (!G) return;
-      var song = G.scene === 'run' ? (G.r.pause ? null : 'run') : 'calm';
+      var song = G.scene === 'run' ? (G.r.pause ? null : 'run') : G.scene === 'ending' ? null : 'calm';
+      if (G.scene === 'brief') G.briefT = (G.briefT || 0) + dt;
+      if (G.scene === 'ending') {
+        G.endT += dt; var E = G.end, floor = S.H * 0.66;
+        E.parts.forEach(function (q) {
+          if (q.crate) { if (G.endT < 0.55 || q.rest) return; q.vy += 1500 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt; if (q.y >= 0) { q.y = 0; q.vy *= -0.35; q.vx *= 0.6; q.vr *= 0.5; if (Math.abs(q.vy) < 60) { q.rest = true; q.vy = 0; } } }
+          else if (q.conf && !REDUCED) { q.y += q.vy * dt; if (q.y > S.H) q.y -= S.H + 20; }
+        });
+        if (G.win && !REDUCED) {
+          E.nextFw -= dt;
+          if (E.nextFw <= 0 && G.endT < 9) { E.nextFw = 0.45 + Math.random() * 0.4; var cx = 120 + Math.random() * (S.W - 240), cy = 90 + Math.random() * floor * 0.45, col = rand(['#6dff8f', '#ffd23f', '#ff4f8a', '#4d9bff', '#ecece4']);
+            for (var fi = 0; fi < 26; fi++) { var an = fi / 26 * Math.PI * 2, spd = 160 + Math.random() * 90; E.fw.push({ x: cx, y: cy, vx: Math.cos(an) * spd, vy: Math.sin(an) * spd, life: 1.1, c: col }); }
+            AU.fx('squash'); }
+          E.fw = E.fw.filter(function (f) { f.life -= dt; f.vy += 160 * dt; f.x += f.vx * dt; f.y += f.vy * dt; return f.life > 0; });
+        }
+      }
       AU.play(song); AU.tick(G.scene === 'run' ? 1 + (G.sprint - 1) * 0.035 + 0.1 * prog() : 1);
       if (G.note) { G.note.t -= dt; if (G.note.t <= 0) G.note = null; }
       if (G.scene === 'plan') G.evT = Math.min(1, (G.evT || 0) + dt * 3);
@@ -1681,7 +1818,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       }
       g2.fillStyle = 'rgba(0,0,0,0.3)'; g2.fillRect(x - o.d.hw * 0.9, base, o.d.hw * 1.8, sc);
       if (k === 'stake') {
-        dspr('sk' + f2, x, base, sc);
+        dspr('sk_' + (o.v || 'exec') + f2, x, base, sc);
         F('700', 14); var sw = g2.measureText(o.say).width + 20, by = base - sc * 16 - 44;
         panel(x - sw / 2 - 18, by, sw, 34, '#ecece4', '#13102a', 5, false); g2.fillStyle = '#ecece4'; g2.fillRect(x - 10, by + 32, 8, 8);
         txt(o.say, x - 18, by + 18, '#13102a', 'center');
@@ -1769,10 +1906,10 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       // goal strip
       g2.fillStyle = 'rgba(6,4,16,0.85)'; g2.fillRect(0, H - 54, W, 54); F('700', 17);
       var ok = REQS[G.sprint - 1].ok(G.cargo); txt(fit((ok ? '✓ ' : 'GOAL: ') + REQS[G.sprint - 1].t, W - (S.compact ? 40 : 330)), 20, H - 27, ok ? GREEN : '#ffb02e');
-      if (!S.compact) { F('500', 15); txt('↑↓ lane   B say no   START pause', W - 20, H - 27, '#bdbdb5', 'right'); }
+      if (!S.compact) { F('500', 15); txt(K('↑↓ lane   B say no   START pause'), W - 20, H - 27, '#bdbdb5', 'right'); }
       noteBar();
       hit(0, top, W, lh, function () { input('lane', 0); }); hit(0, top + lh, W, lh, function () { input('lane', 1); }); hit(0, top + 2 * lh, W, lh, function () { input('lane', 2); });
-      if (r.pause) { g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fillRect(0, 0, W, H); F('900', 80, DISPLAY); txt('PAUSED', W / 2, H / 2 - 20, '#ecece4', 'center'); F('700', 18); txt('START resume   SELECT quit', W / 2, H / 2 + 50, '#bdbdb5', 'center'); hit(0, 0, W, H, function () { input('start'); }); }
+      if (r.pause) { g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fillRect(0, 0, W, H); F('900', 80, DISPLAY); txt('PAUSED', W / 2, H / 2 - 20, '#ecece4', 'center'); F('700', 18); txt(K('START resume   SELECT quit'), W / 2, H / 2 + 50, '#bdbdb5', 'center'); hit(0, 0, W, H, function () { input('start'); }); }
     }
     function drawEvent(t) {
       var W = S.W, H = S.H, ev = G.ev, k = REDUCED ? 1 : 1 - Math.pow(1 - G.evT, 3), cw = Math.min(W - 80, 620), ch = 300;
@@ -1784,7 +1921,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       F('900', 40, DISPLAY); g2.textBaseline = 'alphabetic'; g2.fillStyle = '#ffffff'; var nl = wrap(ev.n.toUpperCase(), x + 130, y + 104, cw - 160, 42, 2);
       F('500', 19, BODY); g2.fillStyle = '#d4d4cc'; wrap(ev.d, x + 130, y + 104 + nl * 42, cw - 160, 26, 2); g2.textBaseline = 'middle';
       F('700', 18); var fw = g2.measureText(ev.fx).width + 28; panel(x + 130, y + ch - 76, Math.min(fw, cw - 160), 40, GOLD, null, 6, false); txt(fit(ev.fx, cw - 190), x + 144, y + ch - 56, '#13102a');
-      if (Math.floor(t * 2) % 2 || REDUCED) { F('700', 16); txt('A  CONTINUE', x + cw - 24, y + ch - 20, '#ecece4', 'right'); }
+      if (Math.floor(t * 2) % 2 || REDUCED) { F('700', 16); txt(K('A') + '  CONTINUE', x + cw - 24, y + ch - 20, '#ecece4', 'right'); }
       hit(0, 0, W, H, function () { input('ok'); });
     }
     function drawPlan(t) {
@@ -1836,23 +1973,38 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       hintBar([['A', next]]); hit(0, 60, W, H - 60, function () { input('ok'); });
     }
     function drawRetro(t) {
-      var W = S.W, H = S.H, n = G.choices.length, gap = 16, cw = (W - 48 - gap * (n - 1)) / n, ch = S.compact ? 380 : 330, y = 190, lh1 = S.compact ? 38 : 34, lh2 = S.compact ? 29 : 26;
+      var W = S.W, H = S.H, n = G.choices.length, gap = 16, cw = (W - 48 - gap * (n - 1)) / n, ch = S.compact ? 430 : 400, y = 168, lh1 = S.compact ? 38 : 34, lh2 = S.compact ? 29 : 26;
       bg(t); g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fillRect(0, 0, W, H); hud();
-      F('900', 40, DISPLAY); txt('RETROSPECTIVE', 24, 92, '#ecece4'); F('500', 18); txt('Pick one artifact to keep', 24, 138, '#bdbdb5');
+      F('900', 40, DISPLAY); txt('RETROSPECTIVE', 24, 92, '#ecece4'); F('500', 18); txt('Pick one artifact to keep for the rest of the run', 24, 132, '#bdbdb5');
       G.choices.forEach(function (a, i) {
         var x = 24 + i * (cw + gap), cur = i === G.cur, yy = y - (cur ? 14 : 0), own = G.arts[a.id] || 0;
-        panel(x, yy, cw, ch, cur ? '#1c2b63' : 'rgba(8,6,20,0.9)', cur ? '#8cc0ff' : 'rgba(236,236,228,0.25)', 10);
-        panel(x + 18, yy + 18, 54, 54, GREEN, null, 6, false); F('900', 30, DISPLAY); txt(a.n.charAt(0), x + 45, yy + 46, '#13102a', 'center');
-        if (own) { F('700', 14); txt('OWNED x' + own, x + cw - 16, yy + 44, '#8cc0ff', 'right'); }
-        F('900', S.compact ? 24 : 30, DISPLAY); g2.fillStyle = '#ecece4'; g2.textBaseline = 'alphabetic'; var nl = wrap(a.n.toUpperCase(), x + 18, yy + 122, cw - 36, lh1, 2);
-        F('500', S.compact ? 15 : 18, BODY); g2.fillStyle = '#d4d4cc'; wrap(a.d, x + 18, yy + 122 + nl * lh1 + 4, cw - 36, lh2, 6); g2.textBaseline = 'middle';
+        var lk = ART_LOOK[a.id] || { c: GREEN, r: 0, tag: '' }, rar = RARITY[lk.r], artH = S.compact ? 120 : 112;
+        // frame in the rarity colour; legendary cards shimmer
+        panel(x, yy, cw, ch, cur ? '#1c2b63' : 'rgba(12,10,28,0.95)', cur ? '#ffffff' : rar.c, 10);
+        if (lk.r === 2 && !REDUCED) { var sx = x + ((t * 220 + i * 90) % (cw + 160)) - 80; g2.save(); g2.beginPath(); g2.rect(x + 3, yy + 3, cw - 6, ch - 6); g2.clip(); g2.fillStyle = 'rgba(255,230,140,0.13)'; g2.beginPath(); g2.moveTo(sx, yy); g2.lineTo(sx + 40, yy); g2.lineTo(sx - 40, yy + ch); g2.lineTo(sx - 80, yy + ch); g2.fill(); g2.restore(); }
+        // art window: diagonal pixel stripes in the item colour behind a big pixel icon
+        var ax = x + 12, ay = yy + 12, aw = cw - 24;
+        g2.save(); g2.beginPath(); g2.rect(ax, ay, aw, artH); g2.clip(); g2.fillStyle = '#0b0918'; g2.fillRect(ax, ay, aw, artH);
+        g2.fillStyle = lk.c; g2.globalAlpha = 0.14; for (var dd = -artH; dd < aw; dd += 16) { g2.beginPath(); g2.moveTo(ax + dd, ay + artH); g2.lineTo(ax + dd + 8, ay + artH); g2.lineTo(ax + dd + 8 + artH, ay); g2.lineTo(ax + dd + artH, ay); g2.fill(); }
+        g2.globalAlpha = 1; g2.restore();
+        var icS = Math.floor((artH - 24) / 24), bob = REDUCED || !cur ? 0 : Math.round(Math.sin(t * 4) * 3);
+        g2.save(); g2.translate(Math.round(ax + aw / 2 - icS * 12), Math.round(ay + artH / 2 - icS * 12 + bob)); g2.scale(icS, icS);
+        var path = new Path2D(ART_ICON[a.id] || ''); g2.fillStyle = 'rgba(0,0,0,0.6)'; g2.translate(1, 1); g2.fill(path); g2.translate(-1, -1); g2.fillStyle = lk.c; g2.fill(path); g2.restore();
+        // rarity ribbon + category tag
+        F('900', 12); var rw = g2.measureText(rar.n).width + 16; box(ax + 6, ay + 6, rw, 20, 3, rar.c); txt(rar.n, ax + 14, ay + 17, '#13102a');
+        if (lk.tag) { var tw = g2.measureText(lk.tag).width + 16; box(ax + aw - tw - 6, ay + 6, tw, 20, 3, 'rgba(8,6,20,0.85)', lk.c, 2); txt(lk.tag, ax + aw - tw + 2, ay + 17, lk.c); }
+        // stack pips: how many of this you can own, filled for those you have
+        for (var pp = 0; pp < a.max; pp++) box(ax + aw - 14 - pp * 14, ay + artH - 16, 10, 10, 2, pp < own ? lk.c : null, lk.c, 2);
+        F('900', S.compact ? 24 : 28, DISPLAY); g2.fillStyle = '#ffffff'; g2.textBaseline = 'alphabetic'; var nl = wrap(a.n.toUpperCase(), x + 16, yy + artH + 52, cw - 32, lh1, 2);
+        F('500', S.compact ? 15 : 17, BODY); g2.fillStyle = '#d4d4cc'; wrap(a.d, x + 16, yy + artH + 52 + nl * lh1 + 2, cw - 32, lh2, 5); g2.textBaseline = 'middle';
+        if (own) { F('700', 13); txt('OWNED ' + own + '/' + a.max, x + 16, yy + ch - 20, lk.c); }
         (function (ii) { hit(x, y - 14, cw, ch + 14, function () { if (G.cur === ii) take(ii); else { G.cur = ii; AU.fx('nav'); } }); })(i);
       });
       hintBar(S.compact ? [['←→', 'Choose'], ['A', 'Take']] : [['←→', 'Choose'], ['A', 'Take it']]);
     }
     function drawName(t) {
       var W = S.W, H = S.H; bg(t); g2.fillStyle = 'rgba(8,6,20,0.8)'; g2.fillRect(0, 0, W, H);
-      F('900', 64, DISPLAY); txt(G.win ? 'SHIPPED!' : 'GAME OVER', W / 2, 110, G.win ? GREEN : '#ff5f6d', 'center');
+      F('900', 64, DISPLAY); txt('NEW SCORE', W / 2, 110, G.win ? GREEN : '#ff5f6d', 'center');
       F('700', 18); txt(G.win ? '10 sprints delivered' : 'Stakeholder trust ran out in sprint ' + G.sprint, W / 2, 168, '#bdbdb5', 'center');
       F('900', 90, DISPLAY); txt(String(G.score), W / 2, 270, '#ecece4', 'center');
       F('700', 18); txt('ENTER YOUR INITIALS', W / 2, 360, '#bdbdb5', 'center');
@@ -1867,16 +2019,99 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     }
     function drawBoard(t) {
       var W = S.W, H = S.H; bg(t); g2.fillStyle = 'rgba(8,6,20,0.82)'; g2.fillRect(0, 0, W, H);
-      F('900', 58, DISPLAY); txt('HIGH SCORES', W / 2, 70, GREEN, 'center');
-      var x0 = W / 2 - 250, rh = Math.min(48, (H - 54 - 130) / 10);
+      var list = HISCORE.list || [];
+      F('900', 58, DISPLAY); txt('HIGH SCORES', W / 2, 62, GREEN, 'center');
+      F('700', 15); txt(G.saving ? 'SAVING YOUR SCORE…' : HISCORE.online ? 'WORLD LEADERBOARD · EVERY PLAYER' : 'OFFLINE · SCORES ON THIS DEVICE', W / 2, 106, HISCORE.online ? '#8cc0ff' : '#ffb02e', 'center');
+      var x0 = W / 2 - 250, rh = Math.min(46, (H - 54 - 170) / 10);
       for (var i = 0; i < 10; i++) {
-        var e = scores[i], y = 130 + i * rh + rh / 2, me = i === G.rank;
+        var e = list[i], y = 134 + i * rh + rh / 2, me = i === G.rank;
         if (me) panel(x0 - 16, y - rh / 2 + 3, 532, rh - 6, 'rgba(109,255,143,0.18)', GREEN, 5, false);
         g2.font = '700 ' + Math.round(rh * 0.5) + 'px ' + MONO; var col = me ? GREEN : e ? '#ecece4' : '#55525e';
         txt((i < 9 ? ' ' : '') + (i + 1) + '.', x0, y, col); txt(e ? e.n : '---', x0 + 90, y, col); txt(e ? String(e.s) : '', x0 + 500, y, col, 'right');
       }
+      if (!G.saving && G.myRank > 10) { F('700', 17); txt('YOU PLACED #' + G.myRank + '. TOP 10 NEXT TIME!', W / 2, H - 76, '#ffd23f', 'center'); }
       hintBar([['START', 'Play again'], ['B', 'Exit']]); hit(0, 0, W, H - 54, function () { input('start'); });
     }
+    function drawBrief(t) {
+      var W = S.W, H = S.H, C = S.compact, k = REDUCED ? 1 : Math.min(1, (G.briefT || 0) * 3);
+      bg(t); g2.fillStyle = 'rgba(8,6,20,0.86)'; g2.fillRect(0, 0, W, H);
+      F('700', 16); txt('SPRINT RUSH · BRIEFING', 24, 36, GREEN);
+      var hs2 = 44; g2.font = '900 ' + hs2 + 'px ' + DISPLAY; while (g2.measureText('YOU ARE THE PM. SHIP 10 SPRINTS.').width > W - 48 && hs2 > 24) { hs2 -= 2; g2.font = '900 ' + hs2 + 'px ' + DISPLAY; }
+      txt('YOU ARE THE PM. SHIP 10 SPRINTS.', 24, 82, '#ffffff');
+      var steps = [
+        { n: '1', t: 'PLAN', d: 'Load the cart with backlog items. Stay within capacity and hit the sprint goal.', ic: 'plan', c: '#4d9bff' },
+        { n: '2', t: 'RUN', d: 'Dodge stakeholders, blockers and bugs. Each hit knocks the top item off.', ic: 'run', c: '#ff7a2f' },
+        { n: '3', t: 'REVIEW', d: 'Delivered items score points. Miss the goal or a must-do and lose a heart.', ic: 'heart', c: '#ff5f6d' }
+      ];
+      var top = 120, gap = 14, cw = C ? W - 48 : (W - 48 - gap * 2) / 3, chh = C ? 128 : 300;
+      steps.forEach(function (st2, i) {
+        var x = C ? 24 : 24 + i * (cw + gap), y = (C ? top + i * (chh + gap) : top) + (1 - k) * 40 * (i + 1);
+        g2.globalAlpha = k; panel(x, y, cw, chh, 'rgba(20,16,44,0.95)', st2.c, 8);
+        panel(x + 14, y + 14, 40, 40, st2.c, null, 5, false); F('900', 26, DISPLAY); txt(st2.n, x + 34, y + 35, '#13102a', 'center');
+        F('900', 30, DISPLAY); txt(st2.t, x + 66, y + 35, '#ffffff');
+        // a picture for each step: the loaded cart, a stakeholder walking at you, the hearts
+        var ix = C ? x + cw - 64 : x + cw / 2, iy = C ? y + chh - 14 : y + chh - 22;
+        if (st2.ic === 'plan') pm(ix - (C ? 40 : 46), iy, C ? 2 : 3, REDUCED ? 0 : t, [{ k: 'feat', w: 2 }, { k: 'bug', w: 1 }, { k: 'debt', w: 2 }], false, false, Math.sin(t * 2) * 0.3);
+        else if (st2.ic === 'run') { var who = STAKES[Math.floor(t / 1.5) % STAKES.length].id; dspr('sk_' + who + (Math.floor(t * 6) % 2), ix, iy, 4); }
+        else { var hs = C ? 5 : 7; dspr('heart', ix - 9 * hs, iy - 6, hs); dspr('heart', ix, iy - 6, hs); dspr(Math.floor(t * 2) % 2 && !REDUCED ? 'heart' : 'heartX', ix + 9 * hs, iy - 6, hs); }
+        F('500', C ? 15 : 17, BODY); g2.fillStyle = '#d4d4cc'; g2.textBaseline = 'alphabetic';
+        wrap(st2.d, x + 16, y + (C ? 84 : 112), C ? cw - 120 : cw - 32, C ? 24 : 26, C ? 2 : 5); g2.textBaseline = 'middle';
+        g2.globalAlpha = 1;
+      });
+      var by = C ? top + 3 * (chh + gap) + 6 : top + chh + 26;
+      F('700', C ? 16 : 18); txt('3 hearts of trust. Lose them all and it is game over.', 24, by, '#ffd23f');
+      // controls legend: names follow the visitor's input (keys or console buttons)
+      var ctl = [['↑↓', 'lane / choose'], ['A', 'pick'], ['B', 'say no'], ['START', 'run / pause']], cx = 24, cy = by + 40;
+      F('700', C ? 15 : 16);
+      ctl.forEach(function (c) {
+        var kk = K(c[0]), kw = g2.measureText(kk).width + 18, lw = g2.measureText(c[1]).width;
+        if (cx + kw + lw + 30 > W - 20) { cx = 24; cy += 40; }
+        box(cx, cy - 14, kw, 28, 6, '#ecece4'); txt(kk, cx + 9, cy, '#13102a'); txt(c[1], cx + kw + 8, cy, '#dcdcd4'); cx += kw + lw + 34;
+      });
+      hintBar([['A', 'Let\'s go'], ['B', 'Back']]); hit(0, 0, W, H - 54, function () { input('ok'); });
+    }
+    function drawEnding(t) {
+      var W = S.W, H = S.H, E = G.end, T = G.endT, floor = Math.round(H * 0.66), sc = S.compact ? 6 : 5, win = G.win;
+      bg(t); g2.fillStyle = win ? 'rgba(8,6,28,0.72)' : 'rgba(34,4,12,0.82)'; g2.fillRect(0, 0, W, H);
+      g2.save();
+      if (!win && T < 0.5 && !REDUCED) g2.translate((Math.random() - 0.5) * 18 * (0.5 - T), (Math.random() - 0.5) * 18 * (0.5 - T));
+      if (!win && T < 0.25) { g2.fillStyle = 'rgba(255,60,80,' + (0.5 - T * 2) + ')'; g2.fillRect(0, 0, W, H); }
+      g2.fillStyle = win ? '#1b1740' : '#2a1020'; g2.fillRect(0, floor, W, H - floor);
+      g2.fillStyle = win ? 'rgba(255,210,63,0.5)' : 'rgba(255,95,109,0.35)'; for (var dx = 0; dx < W; dx += 80) g2.fillRect(dx + (win && !REDUCED ? -(t * 200) % 80 : 0), floor + 10, 40, 5);
+      if (win) {
+        E.fw.forEach(function (f) { g2.globalAlpha = Math.max(0, f.life); g2.fillStyle = f.c; g2.fillRect(f.x - 3, f.y - 3, 6, 6); }); g2.globalAlpha = 1;
+        E.parts.forEach(function (q) { g2.fillStyle = q.c; var w2 = Math.abs(Math.sin(t * 6 + q.ph)) * 10 + 2; g2.fillRect(q.x + Math.sin(t * 2 + q.ph) * 14, q.y, w2, 8); });
+        var hop = REDUCED ? 0 : Math.round(Math.abs(Math.sin(t * 5)) * 26);
+        dspr('pm' + (Math.floor(t * 10) % 4), W / 2, floor - hop, sc);
+        dspr('trophy', W / 2 - sc, floor - hop - sc * 16, sc);
+      } else {
+        // PM tips over, the cart's crates fly and settle, stars circle once he is down
+        var fall = Math.max(0, Math.min(1, (T - 0.4) / 0.45)), px0 = W / 2 - 60;
+        g2.save(); g2.translate(px0, floor); g2.rotate(-fall * Math.PI / 2); dspr('pmHurt', 0, 0, sc); g2.restore();
+        E.parts.forEach(function (q) {
+          var bw = sc * 9, cx2 = W / 2 + 40 + q.x, cy2 = floor - sc * 3 + q.y;
+          g2.save(); g2.translate(cx2, cy2); g2.rotate(q.rot); g2.fillStyle = '#0d0b17'; g2.fillRect(-bw / 2 - sc, -sc * 3.5, bw + sc * 2, sc * 7); g2.fillStyle = TYPES[q.crate].c; g2.fillRect(-bw / 2, -sc * 2.5, bw, sc * 5); g2.restore();
+        });
+        if (T > 0.9) for (var si = 0; si < 3; si++) { var an = t * 4 + si * 2.1; g2.fillStyle = '#ffd23f'; g2.fillRect(px0 - sc * 15 + Math.cos(an) * sc * 5, floor - sc * 6 + Math.sin(an) * sc * 2, sc * 1.5, sc * 1.5); }
+      }
+      g2.restore();
+      // title letters: drop in and bounce (loss) or wave (win)
+      var word = win ? 'SHIPPED!' : 'GAME OVER', size = S.compact ? 110 : 120; g2.font = '900 ' + size + 'px ' + DISPLAY;
+      var total = g2.measureText(word).width, lx = W / 2 - total / 2, ty = H * 0.25;
+      for (var li = 0; li < word.length; li++) {
+        var ch = word.charAt(li), cwid = g2.measureText(ch).width, start = (win ? 0.2 : 1.0) + li * 0.08, u = REDUCED ? 1 : Math.max(0, Math.min(1, (T - start) / 0.5));
+        var yy = win ? ty + (REDUCED ? 0 : Math.sin(t * 5 + li * 0.6) * 10) * (u >= 1 ? 1 : 0) - (1 - u) * 60 : ty - (1 - bounce(u)) * (ty + 80);
+        g2.globalAlpha = win ? u : (u > 0 ? 1 : 0);
+        g2.fillStyle = '#000000'; g2.fillText(ch, lx + 6, yy + 6); g2.fillStyle = win ? GREEN : '#ff5f6d'; g2.fillText(ch, lx, yy); lx += cwid;
+      }
+      g2.globalAlpha = 1;
+      var sub = Math.max(0, Math.min(1, (T - (win ? 1.0 : 2.0)) / 0.5));
+      if (REDUCED) sub = 1;
+      g2.globalAlpha = sub; F('700', 20); txt(win ? '10 sprints delivered. The board is thrilled.' : 'Stakeholder trust ran out in sprint ' + G.sprint + '.', W / 2, ty + 96, '#ecece4', 'center');
+      F('900', 56, DISPLAY); txt(String(G.score), W / 2, ty + 160, win ? '#ffd23f' : '#ecece4', 'center'); g2.globalAlpha = 1;
+      if (T > 1.6) { hintBar([['A', 'Enter initials']]); hit(0, 0, W, H - 54, function () { input('ok'); }); }
+    }
+    function bounce(u) { var n = 7.5625, d = 2.75; if (u < 1 / d) return n * u * u; if (u < 2 / d) return n * (u -= 1.5 / d) * u + 0.75; if (u < 2.5 / d) return n * (u -= 2.25 / d) * u + 0.9375; return n * (u -= 2.625 / d) * u + 0.984375; }
     function drawTitle(t) {
       var W = S.W, H = S.H; bg(t); g2.fillStyle = 'rgba(8,6,20,0.6)'; g2.fillRect(0, 0, W, H);
       F('700', 18); txt('A PRODUCT DELIVERY ROGUELIKE', W / 2, 86, '#8cc0ff', 'center');
@@ -1889,14 +2124,14 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       dspr('bl' + (Math.floor(t * 4) % 2), W + 200 - scroll, fy, sc - 1); dspr('bug' + (Math.floor(t * 16) % 2), W + 520 - ((t * 330) % (W + 700)), fy, sc - 1);
       var demo = [{ k: 'feat', w: 4 }, { k: 'bug', w: 1 }, { k: 'debt', w: 3 }, { k: 'ux', w: 2 }];
       pm(W / 2 - 40, fy, sc, t, demo, false, false, Math.sin(t * 2) * 0.3);
-      if (Math.floor(t * 2) % 2 || REDUCED) { F('700', 26); txt('PRESS START', W / 2, 540, '#ecece4', 'center'); }
-      F('700', 15); txt('BEST  ' + scores[0].n + '  ' + scores[0].s + (soundOn ? '' : '   ·   TURN SOUND ON FOR MUSIC'), W / 2, 600, '#bdbdb5', 'center');
+      if (Math.floor(t * 2) % 2 || REDUCED) { F('700', 26); txt(K('PRESS START'), W / 2, 540, '#ecece4', 'center'); }
+      F('700', 15); var best = HISCORE.list && HISCORE.list[0] || { n: '---', s: 0 }; txt((HISCORE.online ? 'WORLD BEST  ' : 'BEST  ') + best.n + '  ' + best.s + (soundOn ? '' : '   ·   TURN SOUND ON FOR MUSIC'), W / 2, 600, '#bdbdb5', 'center');
       hintBar([['START', 'Play'], ['SELECT', 'Scores'], ['B', 'Exit']]); hit(0, 0, W, H - 54, function () { input('start'); });
     }
     function draw(t) {
       if (!G) start();
       g2.textBaseline = 'middle'; g2.textAlign = 'left'; g2.globalAlpha = 1;
-      ({ title: drawTitle, plan: drawPlan, run: drawRun, review: drawReview, retro: drawRetro, name: drawName, board: drawBoard })[G.scene](t);
+      ({ title: drawTitle, brief: drawBrief, plan: drawPlan, run: drawRun, review: drawReview, retro: drawRetro, ending: drawEnding, name: drawName, board: drawBoard })[G.scene](t);
       g2.textBaseline = 'alphabetic';
     }
     return { start: start, input: input, update: update, draw: draw, stop: function () { AU.play(null); } };
@@ -2067,6 +2302,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
   function bindInput() {
     canvas.addEventListener('pointerdown', function (e) {
+      INPUT = 'pad';
       setNdc(e);
       var p = pick();
       if (p && p.kind === 'button') { press(p.action); return; }
@@ -2142,7 +2378,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       var vw = { '1': 'room', '2': 'console', '3': 'screen' }[e.key];
       if (vw && rig === desk) { setView(vw); return; }
       var a = KEYMAP[e.key.toLowerCase()];
-      if (a) { e.preventDefault(); if (!e.repeat || (/up|down|left|right/.test(a) && st.mode !== 'game')) press(a); }
+      if (a) { INPUT = 'kbd'; e.preventDefault(); if (!e.repeat || (/up|down|left|right/.test(a) && st.mode !== 'game')) press(a); }
     });
     document.querySelectorAll('.tools .swatch').forEach(function (b) {
       b.addEventListener('click', function () {

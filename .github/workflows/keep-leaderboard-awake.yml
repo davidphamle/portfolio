@@ -1,0 +1,17 @@
+# Supabase pauses free projects after a week without requests. This reads the Sprint Rush
+# leaderboard once a day so the "portfolio" project stays awake. The key is the public
+# publishable key the page already ships, so no secret is needed.
+name: Keep leaderboard awake
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read top scores
+        run: |
+          curl -fsS -X POST "https://oabvezmoclxzeitpxroe.supabase.co/rest/v1/rpc/sprint_rush_top" \
+            -H "apikey: sb_publishable_GZLeDLMjODeqCgpPgGKAZQ_Ejjlf_0u" \
+            -H "Content-Type: application/json" -d '{"lim":1}'
