@@ -43,6 +43,8 @@ The site follows the visitor's device setting until they press the sun/moon butt
 - **3D logo shelves:** *Tech stack* and *Three countries* (About tab) show floating 3D logos on a ring instead of tag pills. Left and right (or tapping the sides of the screen) turn the ring; the channel knob and Q/E still change tab. Icons come from Simple Icons (CC0) and flags from flag-icons (MIT), stored in `logos/stack/` and `logos/flags/`; Power BI, Braze and SQL have no icon there, so they show initials. Each shelf is the `shelf` field on its item in `CATS`.
 - **Links:** START on a career entry opens the company site; Contact opens email, LinkedIn or the CV.
 - **Getting there:** a *Play* link in the nav, a *Play mode* button in the hero, and a floating *Play mode* button in the bottom-right corner that appears once the hero buttons scroll out of view. In play mode, *Classic view* returns to the homepage.
+- **Buttons:** every button snaps in, stays down while a finger, mouse button or key is held, and springs back with a small overshoot. On the handheld the D-pad is one piece that rocks toward the pressed arm, and the A/B domes flatten as they bottom out.
+- **Finishes:** eight colourways modelled on the classic handhelds: the original grey (blue lettering, magenta A/B), Berry, Grape, Kiwi, Dandelion, Teal, a see-through purple, and black with red lettering. Set in `FINISHES`; the swatches sit in the toolbar on desktop and behind the cycle button on phones.
 - **Reduced motion:** ambient motion is cut back to a minimum. A screen-reader summary of the content sits in a visually hidden section.
 
 ## Performance

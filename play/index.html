@@ -67,6 +67,8 @@ body { margin: 0; background: var(--ink); color: var(--fg); font-family: var(--b
 .tools { display: flex; align-items: center; gap: 6px; padding: 6px; }
 .tools .lbl { font: 500 11px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding: 0 4px 0 8px; }
 .sep { width: 1px; height: 24px; background: var(--line); margin: 0 2px; }
+.tools .swatch { width: 34px; height: 34px; border-radius: 10px; }
+.tools .swatch i { width: 22px; height: 22px; }
 .swatch { width: 44px; height: 44px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; padding: 0; display: grid; place-items: center; background: transparent; flex: none; transition: border-color 0.15s, transform 0.15s; }
 .swatch i { display: block; width: 26px; height: 26px; border-radius: 8px; background: var(--c); box-shadow: inset 0 -6px 0 var(--c2), 0 0 0 1px rgba(255, 255, 255, 0.14); }
 .swatch[aria-pressed="true"] { border-color: var(--accent); }
@@ -140,9 +142,14 @@ body.pocket .toast { top: calc(76px + env(safe-area-inset-top, 0px)); }
   <a class="chip brand" href="/" id="home-link"><b>David Pham Le</b><span>Play mode</span></a>
   <div class="chip tools">
     <span class="lbl">Finish</span>
-    <button class="swatch" data-shell="classic" aria-pressed="true" aria-label="Classic grey finish" title="Classic grey" style="--c:#cfcbc4;--c2:#3a3740"><i></i></button>
-    <button class="swatch" data-shell="midnight" aria-pressed="false" aria-label="Midnight finish" title="Midnight" style="--c:#2c2a38;--c2:#14131b"><i></i></button>
-    <button class="swatch" data-shell="blue" aria-pressed="false" aria-label="Signal blue finish" title="Signal blue" style="--c:#1a56f0;--c2:#0c2a78"><i></i></button>
+    <button class="swatch" data-shell="classic" aria-pressed="true" aria-label="Classic grey finish" title="Classic grey" style="--c:#c9c4bd;--c2:#8c1d5a"><i></i></button>
+    <button class="swatch" data-shell="berry" aria-pressed="false" aria-label="Berry finish" title="Berry" style="--c:#d42a6b;--c2:#2e2a33"><i></i></button>
+    <button class="swatch" data-shell="grape" aria-pressed="false" aria-label="Grape finish" title="Grape" style="--c:#5a3d91;--c2:#2e2a33"><i></i></button>
+    <button class="swatch" data-shell="kiwi" aria-pressed="false" aria-label="Kiwi finish" title="Kiwi" style="--c:#a4cc2f;--c2:#2e2a33"><i></i></button>
+    <button class="swatch" data-shell="dandelion" aria-pressed="false" aria-label="Dandelion finish" title="Dandelion" style="--c:#f3c21b;--c2:#2e2a33"><i></i></button>
+    <button class="swatch" data-shell="teal" aria-pressed="false" aria-label="Teal finish" title="Teal" style="--c:#139fa4;--c2:#2e2a33"><i></i></button>
+    <button class="swatch" data-shell="clear" aria-pressed="false" aria-label="Clear purple finish" title="Clear purple" style="--c:rgba(143,116,201,0.6);--c2:#3a3046"><i></i></button>
+    <button class="swatch" data-shell="loud" aria-pressed="false" aria-label="Black and red finish" title="Black and red" style="--c:#1d1c22;--c2:#e0262e"><i></i></button>
     <span class="sep"></span>
     <button class="btn icon" id="sound" aria-pressed="false" aria-label="Sound off" title="Sound">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path class="on" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="off" d="M17 9.5l5 5M22 9.5l-5 5"/></svg>
@@ -174,7 +181,7 @@ body.pocket .toast { top: calc(76px + env(safe-area-inset-top, 0px)); }
 
 <div class="hud tray" id="tray">
   <div class="chip tray-list" id="tray-list" role="group" aria-label="Cartridges"></div>
-  <button class="chip swatch" id="finish-cycle" type="button" aria-label="Change finish" style="--c:#cfcbc4;--c2:#3a3740"><i></i></button>
+  <button class="chip swatch" id="finish-cycle" type="button" aria-label="Change finish. Now: Classic grey" style="--c:#c9c4bd;--c2:#8c1d5a"><i></i></button>
 </div>
 
 <section class="sr-only" aria-label="What is on this console">
@@ -410,7 +417,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
   function addButton(rig, m, action, axis, depth) {
     m.userData.action = action; m.userData.axis = axis || 'z'; m.userData.rest = m.position[m.userData.axis]; m.userData.depth = depth == null ? 0.1 : depth;
-    rig.buttons.push({ mesh: m, action: action, t: 0 });
+    rig.buttons.push({ mesh: m, action: action, t: 0, p: 0, v: 0, held: false });
     return m;
   }
 
@@ -721,7 +728,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       cam.lookAt(rig.look);
     };
     rig.setFinish = function (f) { shell.color.set(f.shell); shellDark.color.set(f.dark); rig.subInks.forEach(function (m) { m.color.set(f.sub); }); };
-    rig.setFinish({ shell: '#cfcbc4', dark: '#3a3740', sub: '#3a3740' });
+    rig.setFinish({ shell: '#c9c4bd', dark: '#5d5b6c', sub: '#2b3990' });
     // a number that changes whenever a shadow caster on the desk moves: buttons and cartridges
     rig.shadowSig = function () {
       var s2 = 0;
@@ -806,24 +813,31 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     /* d-pad in a shallow dish */
     var dpx = -2.25, dpy = -3.25;
     flat(new THREE.CircleGeometry(1.62, 48), shade(0.12), dpx, dpy, front + 0.004);
-    mesh(new THREE.BoxGeometry(0.7, 0.7, 0.3), btnDark, dpx, dpy, front + 0.15, dev);
-    flat(new THREE.CircleGeometry(0.2, 20), new THREE.MeshBasicMaterial({ color: '#0c0b10' }), dpx, dpy, front + 0.302);
+    // The D-pad is one cross on a pivot: pressing an arm rocks the whole pad toward it (see rig.update).
+    var padMat = plastic('#1a1920', { roughness: 0.35 }); rig.padMat = padMat;
+    var pad = new THREE.Group(); pad.position.set(dpx, dpy, front + 0.15); dev.add(pad); rig.pad = pad;
+    mesh(new THREE.BoxGeometry(0.7, 0.7, 0.3), padMat, 0, 0, 0, pad);
+    var padDot = new THREE.Mesh(new THREE.CircleGeometry(0.2, 20), new THREE.MeshBasicMaterial({ color: '#0c0b10' })); padDot.position.z = 0.152; pad.add(padDot);
+    rig.padArms = {};
     [['up', 0, 0.72], ['down', 0, -0.72], ['left', -0.72, 0], ['right', 0.72, 0]].forEach(function (d) {
-      var m = mesh(new THREE.BoxGeometry(d[1] ? 0.76 : 0.7, d[1] ? 0.7 : 0.76, 0.3), btnDark, dpx + d[1], dpy + d[2], front + 0.15, dev);
-      addButton(rig, m, d[0], 'z', 0.08);
+      var m = mesh(new THREE.BoxGeometry(d[1] ? 0.76 : 0.7, d[1] ? 0.7 : 0.76, 0.3), padMat, d[1], d[2], 0, pad);
+      addButton(rig, m, d[0], 'z', 0); rig.padArms[d[0]] = rig.buttons[rig.buttons.length - 1];
     });
     /* A / B on an angled pill */
     var pill = flat(new THREE.ShapeGeometry(rrShape(3.7, 1.8, 0.9), 16), shade(0.12), 2.1, -2.95, front + 0.004); pill.rotation.z = 0.437;
-    var ab = plastic('#6a0d33', { roughness: 0.22, clearcoat: 0.9 });
+    var ab = plastic('#8c1d5a', { roughness: 0.22, clearcoat: 0.9 }); rig.abMat = ab;
     [['ok', 2.85, -2.6, 'A'], ['back', 1.35, -3.3, 'B']].forEach(function (b) {
       var m = mesh(new THREE.CylinderGeometry(0.62, 0.64, 0.3, 36), ab, b[1], b[2], front + 0.15, dev);
       var cap = mesh(new THREE.SphereGeometry(0.62, 32, 10, 0, Math.PI * 2, 0, Math.PI / 2), ab, 0, 0.15, 0, m); cap.scale.y = 0.2;
-      m.rotation.x = Math.PI / 2; addButton(rig, m, b[0], 'z', 0.08);
+      m.rotation.x = Math.PI / 2; addButton(rig, m, b[0], 'z', 0.16);
+      // the dome flattens a little as it bottoms out
+      m.userData.anim = function (p) { cap.scale.y = 0.2 - 0.07 * Math.max(0, p); };
       var t = ink(b[3], 0.42, 0.42, { size: 70, w: 96, h: 96 }, rig.subInks); t.position.set(b[1] + 0.62, b[2] - 1.02, front + 0.012); dev.add(t);
     });
+    var ssMat = mat('#8a8792', { roughness: 0.7 }); rig.ssMat = ssMat;
     [['select', -0.9, 'SELECT'], ['start', 0.75, 'START']].forEach(function (b) {
-      var m = mesh(roundedBox(1.0, 0.3, 0.24, 0.15, 0.04), mat('#2e2c35', { roughness: 0.7 }), b[1], -5.4, front + 0.06, dev);
-      m.rotation.z = 0.45; addButton(rig, m, b[0], 'z', 0.05);
+      var m = mesh(roundedBox(1.0, 0.3, 0.24, 0.15, 0.04), ssMat, b[1], -5.4, front + 0.06, dev);
+      m.rotation.z = 0.45; addButton(rig, m, b[0], 'z', 0.1);
       var t = ink(b[2], 1.0, 0.18, { size: 52 }, rig.subInks); t.rotation.z = 0.45; t.position.set(b[1] + 0.14, -5.82, front + 0.012); dev.add(t);
     });
     for (var s = 0; s < 6; s++) { var sl = flat(new THREE.ShapeGeometry(rrShape(0.15, 1.05, 0.07), 6), shade(0.55), 1.55 + s * 0.3, -5.45 - s * 0.11, front + 0.004); sl.rotation.z = 0.45; }
@@ -861,17 +875,22 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     rig.place = function () { var k = rig.zk, d = rig.dist + (rig.distG - rig.dist) * k, cy = rig.cy + (rig.cyG - rig.cy) * k; dev.rotation.y = rig.yaw; dev.rotation.x = rig.pitch; cam.position.set(0, cy, d); cam.lookAt(0, cy, 0); };
     // the handheld floats and turns, so its shadows follow it (throttled in updateShadows)
     rig.shadowSig = function () {
-      var s2 = dev.position.y * 3 + dev.rotation.x * 5 + dev.rotation.y * 7 + dev.rotation.z * 11 + cart.position.y;
+      var s2 = dev.position.y * 3 + dev.rotation.x * 5 + dev.rotation.y * 7 + dev.rotation.z * 11 + cart.position.y + rig.pad.rotation.x * 13 + rig.pad.rotation.y * 17;
       rig.buttons.forEach(function (b, i) { s2 += b.mesh.position[b.mesh.userData.axis] * (i + 1); });
       floaters.forEach(function (m) { s2 += m.rotation.x + m.position.y; });
       return Math.round(s2 * 1e4);
     };
     rig.setFinish = function (f) {
       shell.color.set(f.shell); bezelMat.color.set(f.bezel);
+      shell.transparent = !!f.clear; shell.opacity = f.clear ? 0.66 : 1; shell.depthWrite = !f.clear; shell.needsUpdate = true;
+      rig.abMat.color.set(f.ab || '#8c1d5a'); rig.padMat.color.set(f.pad || '#1a1920'); rig.ssMat.color.set(f.ss || '#8a8792');
       rig.brandInks.forEach(function (m) { m.color.set(f.ink); }); rig.subInks.forEach(function (m) { m.color.set(f.sub); });
     };
-    rig.setFinish({ shell: '#cfcbc4', bezel: '#211f29', ink: '#1a56f0', sub: '#3a3740' });
+    rig.setFinish({ shell: '#c9c4bd', bezel: '#5d5b6c', ink: '#2b3990', sub: '#2b3990', ab: '#8c1d5a', pad: '#1a1920', ss: '#8a8792' });
     rig.update = function (t, dt) {
+      var A = rig.padArms, tilt = 0.17;
+      rig.pad.rotation.x = (A.down.p - A.up.p) * tilt; rig.pad.rotation.y = (A.right.p - A.left.p) * tilt;
+      rig.pad.position.z = front + 0.15 - 0.03 * Math.max(A.up.p, A.down.p, A.left.p, A.right.p, 0);
       var zt = st.power && st.mode === 'game' ? 1 : 0; rig.zk += (zt - rig.zk) * (REDUCED ? 1 : Math.min(1, (dt || 0.016) * 4));
       dev.position.y = Math.sin(t * 1.1) * 0.1 * M; dev.rotation.z = Math.sin(t * 0.7) * 0.007 * M;
       led.material.color.set(st.power ? '#ff3b30' : '#3a1210'); ledGlow.visible = st.power;
@@ -2257,10 +2276,18 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
   /* ================= Rigs ================= */
   var desk, pocket, rig = null;
+  // Colourways of the classic handhelds: the 1989 grey (blue lettering, magenta A/B, black pad), the 1998 colour
+  // range (Berry, Grape, Kiwi, Dandelion, Teal and a see-through purple, all with dark buttons) and the 1995 black
+  // edition (dark-grey bezel and buttons, red lettering). Colours are matched by eye; no official values exist.
   var FINISHES = {
-    classic: { shell: '#cfcbc4', dark: '#3a3740', bezel: '#211f29', ink: '#1a56f0', sub: '#3a3740' },
-    midnight: { shell: '#2c2a38', dark: '#14131b', bezel: '#14131b', ink: '#8cc0ff', sub: '#bdbdb5' },
-    blue: { shell: '#1a56f0', dark: '#0c2a78', bezel: '#0c2a78', ink: '#ffffff', sub: '#dfe8ff' }
+    classic: { shell: '#c9c4bd', dark: '#5d5b6c', bezel: '#5d5b6c', ink: '#2b3990', sub: '#2b3990', ab: '#8c1d5a', pad: '#1a1920', ss: '#8a8792' },
+    berry: { shell: '#d42a6b', dark: '#3a3440', bezel: '#2a2530', ink: '#ffe3ee', sub: '#ffe3ee', ab: '#2e2a33', pad: '#2e2a33', ss: '#2e2a33' },
+    grape: { shell: '#5a3d91', dark: '#2a2240', bezel: '#2a2535', ink: '#efe6ff', sub: '#efe6ff', ab: '#2e2a33', pad: '#2e2a33', ss: '#2e2a33' },
+    kiwi: { shell: '#a4cc2f', dark: '#3a3f2a', bezel: '#2a2c26', ink: '#1f2a0c', sub: '#1f2a0c', ab: '#2e2a33', pad: '#2e2a33', ss: '#2e2a33' },
+    dandelion: { shell: '#f3c21b', dark: '#4a3c10', bezel: '#2a2826', ink: '#2e2300', sub: '#2e2300', ab: '#2e2a33', pad: '#2e2a33', ss: '#2e2a33' },
+    teal: { shell: '#139fa4', dark: '#0d4a4c', bezel: '#22282a', ink: '#e9fffe', sub: '#e9fffe', ab: '#2e2a33', pad: '#2e2a33', ss: '#2e2a33' },
+    clear: { shell: '#a98fe0', dark: '#4a3a70', bezel: '#2a2535', ink: '#ffffff', sub: '#ffffff', ab: '#3a3046', pad: '#3a3046', ss: '#3a3046', clear: true },
+    loud: { shell: '#1d1c22', dark: '#3e3d47', bezel: '#3e3d47', ink: '#e0262e', sub: '#e0262e', ab: '#3e3d47', pad: '#3e3d47', ss: '#4a4952' }
   };
 
   /* cartridges: insert / eject */
@@ -2310,6 +2337,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     return null;
   }
   function buzz() { if (rig === pocket && navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} } }
+  function hold(action, on) { [desk, pocket].forEach(function (r) { if (r) r.buttons.forEach(function (b) { if (on ? b.action === action : true) b.held = on; }); }); }
   function press(action) {
     rig.buttons.forEach(function (b) { if (b.action === action) b.t = 1; });
     if (action === 'R' && desk && desk.knobs) desk.knobs.R.userData.spinT -= Math.PI / 6; // channel: one detent per click
@@ -2344,7 +2372,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       INPUT = 'pad';
       setNdc(e);
       var p = pick();
-      if (p && p.kind === 'button') { press(p.action); return; }
+      if (p && p.kind === 'button') { hold(p.action, true); press(p.action); canvas.setPointerCapture(e.pointerId); return; }
       if (p && p.kind === 'cart' && rig === pocket) {
         var n = CATS[0].items.length; insertCart(st.loaded == null ? 0 : (st.loaded + 1) % n); buzz(); return;
       }
@@ -2407,6 +2435,8 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       if (down) { down = null; rig.yawT = 0; rig.pitchT = 0; }
       canvas.style.cursor = 'default';
     }
+    canvas.addEventListener('pointerup', function () { hold(null, false); });
+    canvas.addEventListener('pointercancel', function () { hold(null, false); });
     canvas.addEventListener('pointerup', release);
     canvas.addEventListener('pointercancel', release);
     canvas.addEventListener('wheel', function (e) { if (rig === desk) { e.preventDefault(); desk.zoomT = Math.max(0.4, Math.min(1.2, desk.zoomT + e.deltaY * 0.0012)); } }, { passive: false });
@@ -2417,8 +2447,10 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
       var vw = { '1': 'room', '2': 'console', '3': 'screen' }[e.key];
       if (vw && rig === desk) { setView(vw); return; }
       var a = KEYMAP[e.key.toLowerCase()];
-      if (a) { INPUT = 'kbd'; e.preventDefault(); if (!e.repeat || (/up|down|left|right/.test(a) && st.mode !== 'game')) press(a); }
+      if (a) { INPUT = 'kbd'; e.preventDefault(); hold(a, true); if (!e.repeat || (/up|down|left|right/.test(a) && st.mode !== 'game')) press(a); }
     });
+    window.addEventListener('keyup', function (e) { var a = KEYMAP[(e.key || '').toLowerCase()]; if (a) hold(a, false); });
+    window.addEventListener('blur', function () { hold(null, false); });
     document.querySelectorAll('.tools .swatch').forEach(function (b) {
       b.addEventListener('click', function () {
         var f = FINISHES[b.dataset.shell]; desk.setFinish(f); pocket.setFinish(f);
@@ -2511,7 +2543,19 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     rig.pitch += ((down || freeze ? rig.pitchT : rig.pitchT + hy) - rig.pitch) * Math.min(1, dt * 4);
     rig.place();
     rig.update(t, dt); syncTray();
-    rig.buttons.forEach(function (b) { if (b.t > 0) b.t = Math.max(0, b.t - dt * 7); b.mesh.position[b.mesh.userData.axis] = b.mesh.userData.rest - b.t * b.mesh.userData.depth; });
+    rig.buttons.forEach(function (b) {
+      if (b.t > 0) b.t = Math.max(0, b.t - dt * 9);              // a tap holds the button down for ~0.1 s
+      var tgt = b.held || b.t > 0 ? 1 : 0;
+      if (b.p == null) { b.p = 0; b.v = 0; }
+      if (REDUCED) b.p = tgt;
+      else if (tgt === 1) { b.p = Math.min(1, b.p + dt * 28); b.v = 0; }   // presses go in fast
+      else { // and spring back out, integrated in small steps so it stays stable on slow frames
+        for (var ss2 = Math.max(1, Math.ceil(dt / 0.008)), h = dt / ss2; ss2 > 0; ss2--) { b.v += ((tgt - b.p) * 700 - b.v * 22) * h; b.p += b.v * h; }
+        b.p = Math.max(-0.3, Math.min(1, b.p));
+      }
+      b.mesh.position[b.mesh.userData.axis] = b.mesh.userData.rest - b.p * b.mesh.userData.depth;
+      if (b.mesh.userData.anim) b.mesh.userData.anim(b.p);
+    });
     if (rig === desk) updateCarts(dt, t);
     drawScreen(t);
     updateShadows(t);
