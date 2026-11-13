@@ -1028,7 +1028,8 @@ if (renderer) {
 
   function size() {
     const w = hero.clientWidth, h = hero.clientHeight;
-    const pr = Math.min(devicePixelRatio || 1, 1.75);
+    // soft dots do not need full retina density: 1.5x on large screens, 1.25x on phones
+    const pr = Math.min(devicePixelRatio || 1, small ? 1.25 : 1.5);
     renderer.setPixelRatio(pr); renderer.setSize(w, h, false);
     uniforms.uPR.value = pr; uniforms.uRes.value.set(w * pr, h * pr);
     camera.aspect = w / h; camera.updateProjectionMatrix();

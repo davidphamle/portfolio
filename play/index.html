@@ -349,12 +349,19 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
   /* ================= Renderer ================= */
   var canvas = document.getElementById('world');
-  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  // Performance budget. Phones and high-density screens get a capped pixel ratio, no MSAA (barely visible at
+  // that density, expensive to resolve), a smaller shadow map with the cheaper PCF filter, and the governor in
+  // loop() lowers or raises the pixel ratio from measured frame times.
+  var DPR0 = window.devicePixelRatio || 1, COARSE = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  var Q = { prMax: Math.min(DPR0, COARSE ? 1.5 : 1.75) };
+  Q.prMin = Math.min(Q.prMax, Math.max(0.75, Q.prMax * 0.6)); Q.pr = Q.prMax;
+  var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: DPR0 < 1.5, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Q.pr);
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = COARSE ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
+  renderer.shadowMap.autoUpdate = false; renderer.shadowMap.needsUpdate = true; // redrawn only when a caster moves (see loop)
 
   var DISPLAY = '"Big Shoulders Display", "Arial Narrow", sans-serif', BODY = '"Archivo", system-ui, sans-serif', MONO = '"IBM Plex Mono", monospace';
 
@@ -387,8 +394,16 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
   /* ================= Screens ================= */
   function makeScreen(w, h, compact, crt) {
     var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = 8;
-    return { cv: cv, ctx: cv.getContext('2d'), tex: tex, W: w, H: h, compact: compact, crt: crt, hits: [] };
+    // re-uploaded every time the screen redraws, so skip mipmaps (they would be rebuilt on every upload)
+    var tex = new THREE.CanvasTexture(cv); tex.encoding = THREE.sRGBEncoding; tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.anisotropy = 4;
+    var ov = null;
+    if (crt) { // scanlines + vignette, drawn once and stamped on top of each frame
+      ov = document.createElement('canvas'); ov.width = w; ov.height = h; var o = ov.getContext('2d');
+      o.fillStyle = 'rgba(0,0,0,0.13)'; for (var y = 0; y < h; y += 4) o.fillRect(0, y, w, 2);
+      var v = o.createRadialGradient(w / 2, h / 2, h * 0.35, w / 2, h / 2, h * 0.85);
+      v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)'); o.fillStyle = v; o.fillRect(0, 0, w, h);
+    }
+    return { cv: cv, ctx: cv.getContext('2d'), tex: tex, W: w, H: h, compact: compact, crt: crt, crtOv: ov, hits: [], last: -1, force: true };
   }
   var deskScreen = makeScreen(960, 720, false, true);
   var pocketScreen = makeScreen(800, 720, true, false);
@@ -480,7 +495,7 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
 
     scene.add(new THREE.HemisphereLight('#c9c2ff', '#2a1a20', 0.4));
     var lamp = new THREE.SpotLight('#ffd9b0', 1.2, 70, 0.62, 0.7, 1.1); lamp.position.set(-13, 19, 12); lamp.target.position.set(0, 2, -2);
-    lamp.castShadow = true; lamp.shadow.mapSize.set(2048, 2048); lamp.shadow.bias = -0.0004; lamp.shadow.normalBias = 0.02; scene.add(lamp); scene.add(lamp.target);
+    lamp.castShadow = true; lamp.shadow.mapSize.set(COARSE ? 1024 : 2048, COARSE ? 1024 : 2048); lamp.shadow.bias = -0.0004; lamp.shadow.normalBias = 0.02; scene.add(lamp); scene.add(lamp.target);
     var tvGlow = new THREE.PointLight('#8fb0ff', 1.4, 24, 1.6); tvGlow.position.set(-1.3, 8.0, -2.6); scene.add(tvGlow);
     // backlight: real lights behind the TV washing the wall
     var back1 = new THREE.PointLight('#4f63ff', 3.2, 19, 1.4); back1.position.set(-2.5, 8.5, -12.1); scene.add(back1);
@@ -707,6 +722,13 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     };
     rig.setFinish = function (f) { shell.color.set(f.shell); shellDark.color.set(f.dark); rig.subInks.forEach(function (m) { m.color.set(f.sub); }); };
     rig.setFinish({ shell: '#cfcbc4', dark: '#3a3740', sub: '#3a3740' });
+    // a number that changes whenever a shadow caster on the desk moves: buttons and cartridges
+    rig.shadowSig = function () {
+      var s2 = 0;
+      rig.buttons.forEach(function (b, i) { s2 += b.mesh.position[b.mesh.userData.axis] * (i + 1); });
+      rig.carts.forEach(function (c, i) { var g = c.group; s2 += (g.position.x * 3 + g.position.y * 5 + g.position.z * 7 + g.quaternion.x + g.quaternion.y + g.quaternion.z) * (i + 1); });
+      return Math.round(s2 * 1e4);
+    };
     rig.update = function (t, dt) {
       var k = REDUCED ? 1 : Math.min(1, (dt || 0.016) * 3.2);
       rig.look.lerp(rig.lookT, k); rig.zoom += (rig.zoomT - rig.zoom) * k; rig.pitch0 += (rig.pitch0T - rig.pitch0) * k;
@@ -837,6 +859,13 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     };
     rig.zk = 0;
     rig.place = function () { var k = rig.zk, d = rig.dist + (rig.distG - rig.dist) * k, cy = rig.cy + (rig.cyG - rig.cy) * k; dev.rotation.y = rig.yaw; dev.rotation.x = rig.pitch; cam.position.set(0, cy, d); cam.lookAt(0, cy, 0); };
+    // the handheld floats and turns, so its shadows follow it (throttled in updateShadows)
+    rig.shadowSig = function () {
+      var s2 = dev.position.y * 3 + dev.rotation.x * 5 + dev.rotation.y * 7 + dev.rotation.z * 11 + cart.position.y;
+      rig.buttons.forEach(function (b, i) { s2 += b.mesh.position[b.mesh.userData.axis] * (i + 1); });
+      floaters.forEach(function (m) { s2 += m.rotation.x + m.position.y; });
+      return Math.round(s2 * 1e4);
+    };
     rig.setFinish = function (f) {
       shell.color.set(f.shell); bezelMat.color.set(f.bezel);
       rig.brandInks.forEach(function (m) { m.color.set(f.ink); }); rig.subInks.forEach(function (m) { m.color.set(f.sub); });
@@ -2161,13 +2190,11 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     g2.fillText('NO SIGNAL', W / 2, H / 2 + 1); g2.textAlign = 'left';
     hit(0, 0, W, H, function () { toast('No signal: the console is off. Press POWER on the console.'); });
   }
-  function crtPass() {
-    var W = S.W, H = S.H;
-    g2.fillStyle = 'rgba(0,0,0,0.13)'; for (var y = 0; y < H; y += 4) g2.fillRect(0, y, W, 2);
-    var v = g2.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.85);
-    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.5)'); g2.fillStyle = v; g2.fillRect(0, 0, W, H);
-  }
+  function crtPass() { if (S.crtOv) g2.drawImage(S.crtOv, 0, 0); }
   function drawScreen(t) {
+    var live = st.mode === 'game' || st.mode === 'load' || st.flash > 0;
+    if (!live && !S.force && t - S.last < 1 / 30) return;
+    S.last = t; S.force = false;
     S.hits = [];
     var screenOn = rig === desk ? st.tv : st.power; // the handheld has one switch for both
     if (!screenOn) drawOff();
@@ -2182,8 +2209,19 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     S.tex.needsUpdate = true;
   }
 
+  // Tiny parts (screws, ribs, labels) add shadow draw calls without a visible shadow: let them only receive.
+  function trimShadowCasters(scene) {
+    var v = new THREE.Vector3();
+    scene.updateMatrixWorld(true);
+    scene.traverse(function (o) {
+      if (!o.isMesh || !o.castShadow || !o.geometry) return;
+      if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+      o.getWorldScale(v); if (o.geometry.boundingSphere.radius * Math.max(v.x, v.y, v.z) < 0.18) o.castShadow = false;
+    });
+  }
   function reboot() { st.mode = 'boot'; st.boot = 0; st.flash = 1; }
   function go(action, arg) {
+    S.force = true;
     if (action === 'power') { st.power = !st.power; if (rig !== desk) st.off = 0; beep(st.power ? 660 : 180, 0.12); if (st.power) reboot(); return; }
     if (action === 'sound') { setSound(!soundOn); return; }
     if (action === 'tv') { st.tv = !st.tv; st.off = 0; beep(st.tv ? 520 : 140, 0.1); toast(st.tv ? 'TV on.' : 'TV off.'); return; }
@@ -2244,7 +2282,8 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
   function chooseRig() {
     var w = window.innerWidth, h = window.innerHeight, aspect = w / h;
     var next = (w < 700 || aspect < 0.8) ? pocket : desk;
-    if (next !== rig) { rig = next; S = rig.screenObj; g2 = S.ctx; document.body.classList.toggle('pocket', rig === pocket); }
+    if (next !== rig) { rig = next; S = rig.screenObj; g2 = S.ctx; S.force = true; document.body.classList.toggle('pocket', rig === pocket); }
+    renderer.shadowMap.needsUpdate = true;
     renderer.setSize(w, h, false);
     var topPx = document.querySelector('.top').getBoundingClientRect().bottom + 6, tr = document.getElementById('tray').getBoundingClientRect();
     desk.fit(aspect); pocket.fit(aspect, h, topPx, tr.height ? h - tr.top + 6 : 16);
@@ -2430,7 +2469,33 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     desk.slotGlow.material.opacity += (glowT - desk.slotGlow.material.opacity) * Math.min(1, dt * 10);
   }
 
-  function loop() {
+  // Frame pacing: at most ~60 fps (120 Hz screens would otherwise draw every frame twice), and a governor
+  // that steps the pixel ratio down after slow stretches and back up after a few smooth ones.
+  var pace = { last: 0, acc: 0, n: 0, good: 0 };
+  function setPR(pr) { Q.pr = pr; renderer.setPixelRatio(pr); renderer.setSize(window.innerWidth, window.innerHeight, false); renderer.shadowMap.needsUpdate = true; }
+  function govern(now) {
+    if (pace.last) { var ft = now - pace.last; if (ft < 250) { pace.acc += ft; pace.n++; } }
+    pace.last = now;
+    if (pace.acc < 1500) return;
+    var avg = pace.acc / pace.n; pace.acc = 0; pace.n = 0;
+    if (avg > 24 && Q.pr > Q.prMin + 0.01) { setPR(Math.max(Q.prMin, Q.pr - 0.25)); pace.good = 0; }
+    else if (avg < 18) { if (++pace.good >= 3 && Q.pr < Q.prMax - 0.01) { setPR(Math.min(Q.prMax, Q.pr + 0.25)); pace.good = 0; } }
+    else pace.good = 0;
+  }
+  // Shadows are cached: the shadow map is only redrawn when something that casts one has moved.
+  var shadowSig = null, shadowAt = -1, shadowRig = null;
+  function updateShadows(t) {
+    var sig = rig.shadowSig ? rig.shadowSig() : t;
+    if (rig !== shadowRig) { shadowRig = rig; shadowSig = null; }
+    if (sig === shadowSig) return;
+    if (rig !== desk && t - shadowAt < 0.05 && shadowSig !== null) return; // the floating handheld: 20 updates a second is plenty
+    shadowSig = sig; shadowAt = t; renderer.shadowMap.needsUpdate = true;
+  }
+  function loop(now) {
+    requestAnimationFrame(loop);
+    now = now || performance.now();
+    if (pace.last && now - pace.last < 15) return; // 60 fps cap
+    govern(now);
     var dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
     if (st.power && st.mode === 'boot') { st.boot += dt; if (st.boot > 3.4) { st.mode = st.loaded != null ? 'load' : 'home'; st.loadT = 0; st.catSlide = 0; } }
     if (st.mode === 'load') { st.loadT += dt; if (st.loadT > 1.0) { st.cat = 0; st.idx[0] = st.loaded; st.mode = 'detail'; st.slide = 0; st.flash = 0.8; beep(990, 0.08); if (CATS[0].items[st.loaded].game) { st.mode = 'game'; GAME.start(); } } }
@@ -2449,15 +2514,15 @@ window.PLAY_SITE = true; window.PLAY_LOGOS = {"amplify-now.png": "/logos/amplify
     rig.buttons.forEach(function (b) { if (b.t > 0) b.t = Math.max(0, b.t - dt * 7); b.mesh.position[b.mesh.userData.axis] = b.mesh.userData.rest - b.t * b.mesh.userData.depth; });
     if (rig === desk) updateCarts(dt, t);
     drawScreen(t);
+    updateShadows(t);
     renderer.render(rig.scene, rig.camera);
-    requestAnimationFrame(loop);
   }
 
   function start() {
     desk = makeDesk(); pocket = makePocket();
     // Sprint Rush starts in the slot
     var c0 = desk.carts[SPRINT_RUSH]; c0.state = 'slot'; c0.group.position.set(desk.slotWorld.x, desk.slotY, desk.slotWorld.z); c0.group.quaternion.copy(desk.slotQ);
-    chooseRig(); bindInput(); loop();
+    chooseRig(); bindInput(); trimShadowCasters(desk.scene); trimShadowCasters(pocket.scene); loop();
     document.getElementById('boot').classList.add('done');
   }
   var started = false;

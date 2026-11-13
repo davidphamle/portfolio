@@ -45,6 +45,17 @@ The site follows the visitor's device setting until they press the sun/moon butt
 - **Getting there:** a *Play* link in the nav, a *Play mode* button in the hero, and a floating *Play mode* button in the bottom-right corner that appears once the hero buttons scroll out of view. In play mode, *Classic view* returns to the homepage.
 - **Reduced motion:** ambient motion is cut back to a minimum. A screen-reader summary of the content sits in a visually hidden section.
 
+## Performance
+
+Play mode keeps its 3D scene light:
+
+- **Resolution:** the pixel ratio is capped (1.5× on touch devices, 1.75× on desktop) and a governor in `loop()` steps it down by 0.25 after slow stretches (frames over ~24 ms) and back up after smooth ones. Anti-aliasing is only on for screens below 1.5× density.
+- **Frame rate:** capped at about 60 fps, so 120 Hz screens don't draw every frame twice.
+- **Shadows:** the shadow map is cached and redrawn only when a caster moves (`shadowSig` on each rig: buttons and cartridges on the desk; the floating handheld at most 20 times a second). Touch devices use a 1024 px map with the cheaper PCF filter, and tiny parts don't cast shadows.
+- **Console screen:** its canvas texture skips mipmaps (they were rebuilt on every upload), the CRT scanlines are drawn once and stamped on, and menus redraw at 30 fps. The game redraws every frame, and any input redraws at once.
+
+The homepage wave caps its pixel ratio at 1.5× (1.25× on phones) and stops drawing when it comes to rest or scrolls out of view.
+
 ## Company logos
 
 The logos on the case-study cards come from each company's own website, listed in `logos/sources.json`. The **Fetch company logos** GitHub Action (`.github/workflows/fetch-logos.yml`) downloads them into `logos/` and commits them. It runs whenever `sources.json` changes, or manually from the Actions tab. If a logo file is missing, its card shows the company's initials instead.
